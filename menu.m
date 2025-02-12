@@ -54,7 +54,7 @@ data(inp).nu =  {[0.3, 1, lt]}; %[~] Poissons ratio
 % not present
 %
 % {[],[],[]...[]} and adjusting the nodes for stepped
-data(inp).d = {[0.005,0.005, 1, 1, 20],[0.006, 0.006, 1, 21, 50],[0.009, 0.009, 1, 51, lt]}; %[0.4, 0.4, 1, 2, 1, lt]
+data(inp).d = {[0.2,0.005, 1, 1, 15]}; %,[0.006, 0.006, 1, 21, 50],[0.009, 0.009, 1, 51, lt]
 
 % geo: 1 = common geometry; 2 = multilayer
 data(inp).geo = 1; 
@@ -71,7 +71,7 @@ data(inp).geo = 1;
 % 1 = free; 0 = restrained %[N/m, N*m/rad]
 lno = data(inp).n_el+1;
 data(inp).BC = [ 1      0 0 ;  % at node 1, BC is 
-                 lt+1   1 0 ]; % 1 1 for coupling
+                 lt+1   1 1 ]; % 1 1 for coupling
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % -------------------------------------------------------------------------
 
@@ -154,7 +154,7 @@ data(inp).BC = [ 1      0 0 ;  % at node 1, BC is
 FEA = calculations(data,BT,modes); 
 
 % basic analysis
-% FEA = calculations.Draw(FEA); %2.1s for 100 el
+FEA = calculations.Draw(FEA); %2.1s for 100 el
 FEA = ShapeModes(FEA,BT); % Mode shape for the chosen theory
 % FEA = TheoriesModeShape(FEA); % Theories shape modes comparing
 
