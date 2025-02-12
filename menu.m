@@ -12,7 +12,7 @@ tic()
 
 % OUTPUT __________________________________________________________________
 BT = 1; % Beam theories: 1 = EBT; 2 = RBT; % 3 = SBT; 4 = TBT
-modes = 4; % number of displayed frequencies and modes
+modes = 3; % number of displayed frequencies and modes
 % _________________________________________________________________________
 
 % INPUT ___________________________________________________________________
@@ -70,8 +70,8 @@ data(inp).geo = 1;
 % [node where it is applied, sheer stress parametrer, momentum parametrer];
 % 1 = free; 0 = restrained %[N/m, N*m/rad]
 lno = data(inp).n_el+1;
-data(inp).BC = [ 1      1 1 ;  % at node 1, BC is 
-                 lt+1   1 1 ]; % 1 1 for coupling
+data(inp).BC = [ 1      0 0 ;  % at node 1, BC is 
+                 lt+1   1 0 ]; % 1 1 for coupling
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % -------------------------------------------------------------------------
 
