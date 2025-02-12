@@ -1,5 +1,4 @@
-
-lear, clc, close all
+clear, clc, close all
 % MEF crazy beam by masthierryi
 % # version 3.2: 
 % -[Geometry.common][Material]common geometry and material parameters for each 
@@ -22,7 +21,7 @@ modes = 4; % number of displayed frequencies and modes
 % -------------------------------------------------------------------------
 inp = 1; % beam index, for each beam, add one on its index
 % FEM parameters  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨  ¨
-data(inp).n_el = 20; % number of elements
+data(inp).n_el = 100; % number of elements
 lt = data(inp).n_el; % number of the last elementa
 
 % beam parameters ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
@@ -55,7 +54,7 @@ data(inp).nu =  {[0.3, 1, lt]}; %[~] Poissons ratio
 % not present
 %
 % {[],[],[]...[]} and adjusting the nodes for stepped
-data(inp).d = {[0.4, 0.39, 2, 1, lt/2],[0.2, 0.19, 2, lt/2+1, lt]}; %[0.4, 0.4, 1, 2, 1, lt]
+data(inp).d = {[0.005,0.005, 1, 1, 20],[0.006, 0.006, 1, 21, 50],[0.009, 0.009, 1, 51, lt]}; %[0.4, 0.4, 1, 2, 1, lt]
 
 % geo: 1 = common geometry; 2 = multilayer
 data(inp).geo = 1; 
@@ -71,8 +70,8 @@ data(inp).geo = 1;
 % [node where it is applied, sheer stress parametrer, momentum parametrer];
 % 1 = free; 0 = restrained %[N/m, N*m/rad]
 lno = data(inp).n_el+1;
-data(inp).BC = [ 1 1 1 ;  % at node 1, BC is 
-               lno 0 1 ]; % 1 1 for coupling
+data(inp).BC = [ 1      1 1 ;  % at node 1, BC is 
+                 lt+1   1 1 ]; % 1 1 for coupling
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % -------------------------------------------------------------------------
 
