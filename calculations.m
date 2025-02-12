@@ -581,14 +581,15 @@ classdef calculations % v3.3
             self.U_disp(i+1-self.coupled_mesh.BC_v(1),:) = A_vet(disp(i),:);
         end
         % Displacement normalization
-        self.U_disp = self.U_disp./max(abs(self.U_disp));%max()
+        % self.U_disp = self.U_disp./max(abs(self.U_disp));%max() abs()
+        self.U_disp = normalize(self.U_disp,"norm");
         for  j = 1:size(A_vet)
             if  self.U_disp(2,j) <= 0
                 self.U_disp(:,j) = -self.U_disp(:,j);
             end
         end
-        % self.U_disp = self.U_disp.*(-1); for inverting   the plots
-        % vertically. same on U_rot.
+        self.U_disp = self.U_disp.*(-1); 
+        %for inverting the plot vertically. same on U_rot.
         %------------------------------------------------------------------
 
         % Rotation --------------------------------------------------------
@@ -656,7 +657,7 @@ classdef calculations % v3.3
         end
         legend ('show');
         legend('Location','southwest')
-        hold off
+        hold off 
         %--------------------------------------------------------------
 
                 % Normal mode shape -------------------------------------------
