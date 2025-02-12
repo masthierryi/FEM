@@ -463,85 +463,92 @@ classdef calculations % v3.3
         b = self.result.natfreq*B; 
 
         % Solution eigenvalues and Dispersion relations ===================
-        % if BT == 1 % Euler-Bernoulli --------------------------------------
-        %      % Beta
-        %     self.result.eigenvalues(:,1) = sqrt(b);
-        %     self.result.freq(:,1) = B*(b./(2*pi));
-        % 
-        % elseif BT == 2 % Rayleight Beam -----------------------------------
-        %     % Beta
-        %     self.result.eigenvalues(:,1) = sqrt((b.^2/2).*(r_t.^2 + sqrt(r_t.^4 + 4./b.^2)));
-        %     % Alpha
-        %     self.result.eigenvalues(:,2) = sqrt((b.^2/2).*(-r_t.^2 + sqrt(r_t.^4 + 4./b.^2)));
-        % 
-        %     self.result.freq(:,1) = B*(sqrt(self.result.eigenvalues(:,1).^2 - self.result.eigenvalues(:,2).^2)/2*pi*r_t);
-        % 
-        % elseif BT == 3 % Shear Beam ---------------------------------------
-        %     % Beta
-        %     self.result.eigenvalues(:,1) = sqrt((b.^2/2).*(s_t.^2 + sqrt(s_t.^4 + 4./b.^2)));
-        %     % Alpha
-        %     self.result.eigenvalues(:,2) = sqrt((b.^2/2).*(-s_t.^2 + sqrt(s_t.^4+ 4./b.^2)));
-        % 
-        %     self.result.freq(:,1) = B*(sqrt(self.result.eigenvalues(:,1).^2 - self.result.eigenvalues(:,2).^2)/2*pi*s_t);
-        % 
-        % elseif BT == 4 % Timoshenko Beam ----------------------------------
-        %     % Beta
-        %     self.result.eigenvalues(:,1) = sqrt((b.^2/2).*((r_t.^2+s_t.^2) + sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
-        %     % Alpha before critical frequency
-        %     self.result.eigenvalues(:,2) = sqrt((b.^2/2).*(-(r_t.^2+s_t.^2) + sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
-        %     % Alpha after the critical frequency
-        %     self.result.eigenvalues(:,3) = sqrt((b.^2/2).*((r_t.^2+s_t.^2) - sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
-        % 
-        %     for j = 1:size(b)
-        %         if b(j) < self.critical.b
-        %             % Natural frequency before critical frequency
-        %             self.result.freq(j,1) = B*(sqrt(self.result.eigenvalues(j,1).^2 - self.result.eigenvalues(j,2).^2)/ ...
-        %                 (2*pi*sqrt(r_t.^2+s_t.^2)));
-        %         elseif b(j) > self.critical.b
-        %             % Natural frequency after critical frequency
-        %             self.result.freq(j,2) = B*(sqrt(self.result.eigenvalues(j,1).^2 + self.result.igenvalues(j,3).^2)/ ...
-        %                 (2*pi*sqrt(r_t.^2+s_t.^2)));
-        %         end 
-        %     end
-        % 
-        % end % =============================================================
+        if BT == 1 % Euler-Bernoulli --------------------------------------
+             % Beta
+            self.result.dispersion(:,1) = sqrt(b);
+            self.result.freq(:,1) = B*(b./(2*pi));
 
-        %Dispersion relationship (wave number) ============================
-
-        if BT == 1 %Euler-Bernoulli ---------------------------------------
-            self.result.eigenvalues = sqrt(self.result.natfreq.*self.L.*sqrt(rho/ E)*self.S(1));
-
-        elseif BT == 2 %Rayleight Beam ------------------------------------
+        elseif BT == 2 % Rayleight Beam -----------------------------------
+            % Beta
+            self.result.dispersion(:,1) = sqrt((b.^2/2).*(r_t.^2 + sqrt(r_t.^4 + 4./b.^2)));
             % Alpha
-            self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(-(1/self.S(1))^2 + sqrt((1/self.S(1))^4 + 4./b.^2));
-            % Beta
-            self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt((1/self.S(1))^2 + sqrt((1/self.S(1))^4 + 4./b.^2));
+            self.result.dispersion(:,2) = sqrt((b.^2/2).*(-r_t.^2 + sqrt(r_t.^4 + 4./b.^2)));
 
-        elseif BT == 3 %Shear Beam -----------------------------------------
+            self.result.freq(:,1) = B*(sqrt(self.result.eigenvalues(:,1).^2 ...
+                - self.result.dispersion(:,2).^2)/2*pi*r_t);
+
+        elseif BT == 3 % Shear Beam ---------------------------------------
+            % Beta
+            self.result.dispersion(:,1) = sqrt((b.^2/2).*(s_t.^2 + sqrt(s_t.^4 + 4./b.^2)));
             % Alpha
-            self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(-(1/self.S(1)*self.gama(1))^2+...
-                sqrt((1/self.S(1)*self.gama(1))^4 + 4./b.^2));
+            self.result.dispersion(:,2) = sqrt((b.^2/2).*(-s_t.^2 + sqrt(s_t.^4+ 4./b.^2)));
+
+            self.result.freq(:,1) = B*(sqrt(self.result.eigenvalues(:,1).^2 ...
+                - self.result.dispersion(:,2).^2)/2*pi*s_t);
+
+        elseif BT == 4 % Timoshenko Beam ----------------------------------
             % Beta
-            self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt((1/self.S(1)*self.gama(1))^2+...
-                sqrt((1/self.S(1)*self.gama(1))^4 + 4./b.^2));
+            self.result.dispersion(:,1) = sqrt((b.^2/2).*((r_t.^2+s_t.^2) ...
+                + sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
+            % Alpha before critical frequency
+            self.result.dispersion(:,2) = sqrt((b.^2/2).*(-(r_t.^2+s_t.^2) ...
+                + sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
+            % Alpha after the critical frequency
+            self.result.dispersion(:,3) = sqrt((b.^2/2).*((r_t.^2+s_t.^2) ...
+                - sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
 
-        elseif BT == 4 %Timoshenko Beam -----------------------------------
-            % Alpha before critical frequencie
-            self.result.eigenvalues(:,3) = (b./sqrt(2)).*sqrt(((1/self.S(1))^2 +...
-                ((1/self.S(1))*self.gama(1))^2) - sqrt( ((1/self.S(1))^2 -...
-                ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
-
-            % Alpha after the critical frequencie
-            self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt(-((1/self.S(1))^2 +...
-                ((1/self.S(1))*self.gama(1))^2) + sqrt( ((1/self.S(1))^2 -...
-                ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
-
-            % Beta
-            self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(((1/self.S(1))^2 +...
-                ((1/self.S(1))*self.gama(1))^ 2) + sqrt( ((1/self.S(1))^2 -...
-                ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
+            for j = 1:size(b)
+                if b(j) < self.critical.b
+                    % Natural frequency before critical frequency
+                    self.result.freq(j,1) = B*(sqrt(self.result.dispersion(j,1).^2 ...
+                        - self.result.dispersion(j,2).^2)/ ...
+                        (2*pi*sqrt(r_t.^2+s_t.^2)));
+                elseif b(j) > self.critical.b
+                    % Natural frequency after critical frequency
+                    self.result.freq(j,2) = B*(sqrt(self.result.dispersion(j,1).^2 ...
+                        + self.result.dispersion(j,3).^2)/ ...
+                        (2*pi*sqrt(r_t.^2+s_t.^2)));
+                end 
+            end
 
         end % =============================================================
+
+        % %Dispersion relationship (wave number) ============================
+        % 
+        % if BT == 1 %Euler-Bernoulli ---------------------------------------
+        %     self.result.eigenvalues = sqrt(self.result.natfreq.*self.L.*sqrt(rho/ E)*self.S(1));
+        % 
+        % elseif BT == 2 %Rayleight Beam ------------------------------------
+        %     % Alpha
+        %     self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(-(1/self.S(1))^2 + sqrt((1/self.S(1))^4 + 4./b.^2));
+        %     % Beta
+        %     self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt((1/self.S(1))^2 + sqrt((1/self.S(1))^4 + 4./b.^2));
+        % 
+        % elseif BT == 3 %Shear Beam -----------------------------------------
+        %     % Alpha
+        %     self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(-(1/self.S(1)*self.gama(1))^2+...
+        %         sqrt((1/self.S(1)*self.gama(1))^4 + 4./b.^2));
+        %     % Beta
+        %     self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt((1/self.S(1)*self.gama(1))^2+...
+        %         sqrt((1/self.S(1)*self.gama(1))^4 + 4./b.^2));
+        % 
+        % elseif BT == 4 %Timoshenko Beam -----------------------------------
+        %     % Alpha before critical frequencie
+        %     self.result.eigenvalues(:,3) = (b./sqrt(2)).*sqrt(((1/self.S(1))^2 +...
+        %         ((1/self.S(1))*self.gama(1))^2) - sqrt( ((1/self.S(1))^2 -...
+        %         ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
+        % 
+        %     % Alpha after the critical frequencie
+        %     self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt(-((1/self.S(1))^2 +...
+        %         ((1/self.S(1))*self.gama(1))^2) + sqrt( ((1/self.S(1))^2 -...
+        %         ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
+        % 
+        %     % Beta
+        %     self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(((1/self.S(1))^2 +...
+        %         ((1/self.S(1))*self.gama(1))^ 2) + sqrt( ((1/self.S(1))^2 -...
+        %         ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
+        % 
+        % end % =============================================================
 
         % rigid body movement
         % Rbm = length(self.result.natfreq(self.result.natfreq<8));
@@ -1419,7 +1426,8 @@ classdef calculations % v3.3
             elseif self.Beam(input).d3(el) == 2 % Rectangular ¨ ¨ ¨ ¨ ¨ ¨ ¨
                 A = d1.*d2;
                 I = (d1.*d2.^3)/12;
-                k = 10*(1+nu)./(12+11.*nu);
+                % k = 10*(1+nu)./(12+11.*nu);
+                k = 5/6;
 
             elseif self.Beam(input).d3(el) == 3 % Hollow Circle ¨ ¨ ¨ ¨ ¨ ¨ 
                 A = pi*(d1^2 - d2^2);
