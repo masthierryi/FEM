@@ -581,12 +581,14 @@ classdef calculations % v3.3
             self.U_disp(i+1-self.coupled_mesh.BC_v(1),:) = A_vet(disp(i),:);
         end
         % Displacement normalization
-        self.U_disp = self.U_disp./max(abs((self.U_disp)));
+        self.U_disp = self.U_disp./max(abs(self.U_disp));%max()
         for  j = 1:size(A_vet)
             if  self.U_disp(2,j) <= 0
                 self.U_disp(:,j) = -self.U_disp(:,j);
             end
         end
+        % self.U_disp = self.U_disp.*(-1); for inverting   the plots
+        % vertically. same on U_rot.
         %------------------------------------------------------------------
 
         % Rotation --------------------------------------------------------
@@ -597,12 +599,13 @@ classdef calculations % v3.3
             self.U_rot(i+1-self.coupled_mesh.BC_v(2),:) = A_vet(rot(i),:);
         end
         % Rotation normalization
-        self.U_rot = self.U_rot./max(abs((self.U_rot)));
+        self.U_rot = self.U_rot./max(max(abs(self.U_rot)));
         for  j = 1:size(A_vet)
             if  self.U_rot(2,j) <= 0
                 self.U_rot(:,j) = -self.U_rot(:,j);
             end
         end
+        % self.U_rot = self.U_rot.*(-1);
         %------------------------------------------------------------------
     
     end % end FrequenciesComp
@@ -630,34 +633,22 @@ classdef calculations % v3.3
             model = 'Timoshenko';
         end
 
-        % Normal mode shape -------------------------------------------
-        figure("Position",[460 40 500 300])
-        hold on
-        box on
-        grid on
-        title(sprintf('First %d mode of a %s beam:',self.modes,model));
-        xlabel('\xi')
-        ylabel('V(\xi)')
-        axis([0 max(self.coupled_mesh.coordinates)/self.L -1.5 1.5])
-        for  mode_cnt = 1:self.modes
-            plot(self.coupled_mesh.coordinates/self.L,  self.U_disp(:,mode_cnt + Rbm),  ...
-                "DisplayName",sprintf('%dº mode',mode_cnt));
-            legend('-DynamicLegend');
-        end
-        legend ('show');
-        legend('Location','southwest')
-        hold off
-        % -------------------------------------------------------------
+        maxdisp = max(max(self.U_disp(:,1+ Rbm:self.modes+ + Rbm)))+0.05; 
+        maxrot = max(max(self.U_rot(:,1+ Rbm:self.modes+ + Rbm)))+0.05; 
+        mindisp = min(min(self.U_disp(:,1+ Rbm:self.modes+ + Rbm)))-0.05; 
+        minrot = min(min(self.U_rot(:,1+ Rbm:self.modes+ + Rbm)))-0.05; 
+
+
         
         % Rotation mode shape -----------------------------------------
-        figure("Position",[460 370 500 300])
+        figure("Position",[460 40 500 300])
         hold on
         box on
         grid on
         title(sprintf('First %d rotation modes of a %s beam:',self.modes,model));
         xlabel('\xi')
         ylabel('V(\xi)')
-        axis([0 max(self.coupled_mesh.coordinates)/self.L -1.5 1.5])
+        axis([0 max(self.coupled_mesh.coordinates)/self.L minrot maxrot])
         for  mode_cnt = 1:self.modes
             plot(self.coupled_mesh.coordinates/self.L, self.U_rot(:,mode_cnt + Rbm),...
                 "DisplayName",sprintf('%dº mode',mode_cnt))
@@ -667,6 +658,25 @@ classdef calculations % v3.3
         legend('Location','southwest')
         hold off
         %--------------------------------------------------------------
+
+                % Normal mode shape -------------------------------------------
+        figure("Position",[460 342 500 300])
+        hold on
+        box on
+        grid on
+        title(sprintf('First %d mode of a %s beam:',self.modes,model));
+        xlabel('\xi')
+        ylabel('V(\xi)')
+        axis([0 max(self.coupled_mesh.coordinates)/self.L mindisp maxdisp])
+        for  mode_cnt = 1:self.modes
+            plot(self.coupled_mesh.coordinates/self.L,  self.U_disp(:,mode_cnt + Rbm),  ...
+                "DisplayName",sprintf('%dº mode',mode_cnt));
+            legend('-DynamicLegend');
+        end
+        legend ('show');
+        legend('Location','southwest')
+        hold off
+        % -------------------------------------------------------------
 
     end % End of the plotting
 
