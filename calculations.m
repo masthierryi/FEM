@@ -611,7 +611,7 @@ classdef calculations % v3.3
     
     end % end FrequenciesComp
 
-    end 
+                                                                        end 
     % ============================ ANALYSIS ============================= %
                                                                     methods
     %% MODE SHAPES                                                         
@@ -1305,7 +1305,7 @@ classdef calculations % v3.3
             hold off
     end
 
-    end
+                                                                        end
     % ============================= STATIC ============================== %
                                                            methods (Static)
     %% LEGENDRE-GAUSS QUADRATURE BY GREG VON WINCKEL (2004)                
@@ -1755,14 +1755,14 @@ classdef calculations % v3.3
 
     end % end multilayer
 
-    end % static methods
-    methods (Access = private)
+                                                                        end
+                                                 methods (Access = private)
         % function result = cellcatcol(field, input, column)
         %     % only for convenience
         %     res = vertcat(self.data(input).(field){:});
         %     result = res(:,column);
         % end
-    end
+                                                                        end
 
     % ============================== END ================================ %
 end % classdef
