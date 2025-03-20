@@ -26,13 +26,14 @@ lt = data(inp).n_el; % number of the last elementa
 
 % beam parameters ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % [value, node*]; *last node that has this value. one line for each change
-data(inp).L = 1;  %[m] Length
+data(inp).L   = 0.32122; %[m] Length
 
-data(inp).rho = {[7830, 1, lt]}; %[kg/m^3] Specifc mass
+fa = 0.00001; % o valor do interno é x vezes o externo
+data(inp).rho = {[fa*2710.3, 1, lt]}; %[kg/m^3] Specifc mass
 
-data(inp).E =   {[200e9, 1, lt]}; %[Pa] Youngs modulus
+data(inp).E   = {[fa*68.73e9, 1, lt]}; %[Pa] Youngs modulus
 
-data(inp).nu =  {[0.3, 1, lt]}; %[~] Poissons ratio
+data(inp).nu  = {[0.3, 1, lt]}; %[~] Poissons ratio
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 
 % cross-section data  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
@@ -54,23 +55,24 @@ data(inp).nu =  {[0.3, 1, lt]}; %[~] Poissons ratio
 % not present
 %
 % {[],[],[]...[]} and adjusting the nodes for stepped
-data(inp).d = {[0.2,0.005, 1, 1, 15]}; %,[0.006, 0.006, 1, 21, 50],[0.009, 0.009, 1, 51, lt]
+data(inp).d = {[0.020002, 0, 1, 1, lt]}; 
 
-% geo: 1 = common geometry; 2 = multilayer
+% geo: 1 = common geometry; 2 = multilayer                                 
+% not working for timoshenko
 data(inp).geo = 1; 
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 
 % multilayer data ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % [radius, rho, E, nu, inital node, end node] 
 % one line for each new layer
-% data(inp).layer = {[0.04, 5000, 20e9, 0.3, 2,lt]}; % 0.03, 5000, 20e9, 0.3, 1,lt
+data(inp).layer = {[0.01, 2710.3, 68.73e9, 0.3, 1,lt]}; 
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 
 % boundary conditions ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % [node where it is applied, sheer stress parametrer, momentum parametrer];
 % 1 = free; 0 = restrained %[N/m, N*m/rad]
 lno = data(inp).n_el+1;
-data(inp).BC = [ 1      0 0 ;  % at node 1, BC is 
+data(inp).BC = [ 1      1 1 ;  % at node 1, BC is 
                  lt+1   1 1 ]; % 1 1 for coupling
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % -------------------------------------------------------------------------
@@ -112,7 +114,7 @@ data(inp).BC = [ 1      0 0 ;  % at node 1, BC is
 % % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % % -------------------------------------------------------------------------
 
-% % TRUSS 
+% % TRUSS  
 % % -------------------------------------------------------------------------
 % % FEM parameters  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ 
 % % [element, initial node, final node , dof type*]
@@ -154,7 +156,7 @@ data(inp).BC = [ 1      0 0 ;  % at node 1, BC is
 FEA = calculations(data,BT,modes); 
 
 % basic analysis
-FEA = calculations.Draw(FEA); %2.1s for 100 el
+% FEA = calculations.Draw(FEA); %2.1s for 100 el
 FEA = ShapeModes(FEA,BT); % Mode shape for the chosen theory
 % FEA = TheoriesModeShape(FEA); % Theories shape modes comparing
 
@@ -173,13 +175,14 @@ type = 3;
 
 toc()
 
-fprintf("\nU disp| %+e| %+e| %+e| %+e| \n",FEA.U_disp(3,3),FEA.U_disp(12,11),FEA.U_disp(5,18),FEA.U_disp(19,36));
-fprintf("U rot_| %+e| %+e| %+e| %+e| \n",FEA.U_rot(3,3),FEA.U_rot(12,11),FEA.U_rot(5,18),FEA.U_rot(19,36));
-fprintf("K_____| %+e| %+e| %+e| %+e| \n",FEA.matrices.CK(3,3),FEA.matrices.CK(25,23),FEA.matrices.CK(32,29),FEA.matrices.CK(32,30));
-fprintf("M_____| %+e| %+e| %+e| %+e| \n",FEA.matrices.CM(3,3),FEA.matrices.CM(25,23),FEA.matrices.CM(32,29),FEA.matrices.CM(32,30));
-fprintf("freq__| %+e| %+e| %+e| %+e| \n",FEA.result.natfreq(1),FEA.result.natfreq(2),FEA.result.natfreq(3),FEA.result.natfreq(5));
-fprintf("beam__| A = %+g| I = %+g| k = %+g| G = %+g| \n", FEA.Beam.A(1),FEA.Beam.I(1),FEA.Beam.k(1),FEA.Beam.G(1));
-fprintf("beam__| r_e = %+g| s_e = %+g| S = %+g| gama = %+g|",FEA.Beam.r_e(1),FEA.Beam.s_e(1),FEA.S,FEA.gama);
+% 
+% fprintf("\nU disp| %+e| %+e| %+e| %+e| \n",FEA.U_disp(3,3),FEA.U_disp(12,11),FEA.U_disp(5,18),FEA.U_disp(19,36));
+% fprintf("U rot_| %+e| %+e| %+e| %+e| \n",FEA.U_rot(3,3),FEA.U_rot(12,11),FEA.U_rot(5,18),FEA.U_rot(19,36));
+% fprintf("K_____| %+e| %+e| %+e| %+e| \n",FEA.matrices.CK(3,3),FEA.matrices.CK(25,23),FEA.matrices.CK(32,29),FEA.matrices.CK(32,30));
+% fprintf("M_____| %+e| %+e| %+e| %+e| \n",FEA.matrices.CM(3,3),FEA.matrices.CM(25,23),FEA.matrices.CM(32,29),FEA.matrices.CM(32,30));
+% fprintf("freq__| %+e| %+e| %+e| %+e| \n",FEA.result.natfreq(1),FEA.result.natfreq(2),FEA.result.natfreq(3),FEA.result.natfreq(5));
+% fprintf("beam__| A = %+g| I = %+g| k = %+g| G = %+g| \n", FEA.Beam.A(1),FEA.Beam.I(1),FEA.Beam.k(1),FEA.Beam.G(1));
+% fprintf("beam__| r_e = %+g| s_e = %+g| S = %+g| gama = %+g|",FEA.Beam.r_e(1),FEA.Beam.s_e(1),FEA.S,FEA.gama);
 
 % 
 % time chart --------------------------------------------------------------
