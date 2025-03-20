@@ -1,10 +1,10 @@
-classdef calculations % v3.3
+classdef calculations 
     properties                                                             
     data                        % beam data (struct)for each beam
     mesh                        % FEM mesh (struct) for each beam
     Beam                        % beam parameters for each beam
     layer                       % multilayer data
-    structure                   % final structure
+    % structure                   % final structure
     coupled_mesh                % coupled mesh for plottings
     modes                       % number of shape modes to be ploted
     
@@ -137,29 +137,29 @@ classdef calculations % v3.3
                              self.gama(input) = sqrt(E(1)./ (k(1).* G(1)));
                                                 % self.gama(input) = 2.205;
                                   % - - - - - - - - - - - - - - - - - - - -
-        % _________________________________________________________________
-                                                  
-        % Final structure _________________________________________________
-        if input == 1 % pre-allocation 
-            self.structure = self.Beam(input);
-        end
 
-        if self.data(input).geo == 1  % if normal geometry
-            self.structure(input) = self.Beam(input);
-        else % add layer ###### tirar o geo
-            beam = self.Beam(input); 
-            self.structure(input) = struct(...
-                'k', beam.k, ...
-                'G', beam.G, ...
-                'r_e', beam.r_e, ...
-                's_e', beam.s_e, ...
-                'nu', beam.nu, ...
-                'A', beam.A + sum(self.layer(input).A, 2), ...
-                'I', beam.I + sum(self.layer(input).I, 2), ...
-                'rho', beam.rho + sum(self.layer(input).rho, 2), ...
-                'E', beam.E + sum(self.layer(input).E, 2) );
-        end
-        % _________________________________________________________________
+        % ______________________________________________________________
+        % if input == 1 % pre-allocation 
+        %     self.structure = self.Beam(input);
+        % end
+        % if self.data(input).geo == 1  % if normal geometry
+        %     self.structure(input) = self.Beam(input);
+        % else 
+        %     beam = self.Beam(input); 
+        %     self.structure(input) = struct(...
+        %         'd1', beam.k, ...
+        %         'd2', beam.k, ...
+        %         'd3', beam.k, ...
+        %         'k', beam.k, ...
+        %         'G', beam.G, ...
+        %         'r_e', beam.r_e, ...
+        %         's_e', beam.s_e, ...
+        %         'nu', beam.nu, ...
+        %         'A', beam.A + sum(self.layer(input).A, 2), ...
+        %         'I', beam.I + sum(self.layer(input).I, 2), ...
+        %         'rho', beam.rho + sum(self.layer(input).rho, 2), ...
+        %         'E', beam.E); 
+        % end
 
     end % end of function parameters
 
@@ -172,7 +172,7 @@ classdef calculations % v3.3
         % Shape functions pre-allocation ----------------------------------
         Nd = zeros(4); Ns = Nd; Nd_d = Nd; Ns_d = Nd;
         % Matrix cells pre-allocation
-        self.matrices.K = cell(1,size(self.structure,2));
+        self.matrices.K = cell(1,size(self.Beam,2));
         self.matrices.M = self.matrices.K;
 
         % Loop for each different beam
@@ -192,7 +192,7 @@ classdef calculations % v3.3
 
                 % Shape functions 
                 % ---------------------------------------------------------
-                s_e = self.structure(inp).s_e(i);
+                s_e = self.Beam(inp).s_e(i);
                 fc = 1/(4*(3*s_e^2+1)); % Constant for the function
                 for j = 1:length(x)
     
@@ -224,24 +224,33 @@ classdef calculations % v3.3
                 end 
                 % ---------------------------------------------------------
             
-                % Matrix constants 
-                % ---------------------------------------------------------
-                A = self.structure(inp).A(i);
-                I = self.structure(inp).I(i);
-                k = self.structure(inp).k(i);
-                E = self.structure(inp).E(i);
-                rho = self.structure(inp).rho(i);
-                G = self.structure(inp).G(i);
-                r_e = self.structure(inp).r_e(i);
+                % Final Beam _________________________________________
+       
+                if self.data(:).geo == 1  % if normal geometry
+                    % constant for translation mass matrix
+                    C_tra = (self.Beam.rho).* (self.Beam.A).* L_e;
+                    % constant for rotation mass matrix 
+                    C_rot = (self.Beam.r_e.^2).* (self.Beam.rho).* (self.Beam.A).* L_e^3;
+                    % constant for stiffness bending matrix (\frac{EI}{A})
+                    C_ben = ((self.Beam.E).* (self.Beam.I))./ L_e; 
+                    % constant for stiffness shear matrix
+                    C_she = ((self.Beam.s_e.^2).* (self.Beam.k.* self.Beam.G.* (self.Beam.A).^2* L_e^3))./((self.Beam.E).* (self.Beam.I)); 
 
-                % constant for translation mass matrix
-                C_tra = rho.* A* L_e;
-                % constant for rotation mass matrix 
-                C_rot = r_e.^2* rho.* A.* L_e^3;
-                % constant for stiffness bending matrix (\frac{EI}{A})
-                C_ben = (E.* I)./ L_e; 
-                % constant for stiffness shear matrix
-                C_she = (s_e^2.* (k.* G.* A).^2* L_e^3)./(E.* I); 
+                else 
+                    % constant for translation mass matrix
+                    C_tra = ((self.Beam.rho.*self.Beam.A) + (self.layer.rho.* self.layer.A)).* L_e;
+                    % constant for rotation mass matrix 
+                    C_rot = ((self.Beam.r_e).^2).* (self.Beam.rho + (sum(self.layer(:).rho, 2))).* (self.Beam.A + sum(self.layer(:).A, 2)).* L_e^3;
+                    % constant for stiffness bending matrix (\frac{EI}{A})
+                    C_ben = ( ( self.Beam.E.* self.Beam.I ) + (self.layer.E.* self.layer.I) )./ L_e; % 
+                    % constant for stiffness shear matrix
+                    C_she = (s_e^2.* (self.Beam.k.* self.Beam.G.* (self.Beam.A + sum(self.layer(:).A, 2))).^2* L_e^3)./( (self.Beam.E + sum(self.layer(:).E, 2)).* (self.Beam.I + sum(self.layer(:).I, 2))); 
+                end
+                % _________________________________________________________
+
+                % ---------------------------------------------------------
+                k = self.Beam(inp).k(i);
+                G = self.Beam(inp).G(i);
                 % ---------------------------------------------------------
     
                 % Computing the element matrix 
@@ -253,9 +262,9 @@ classdef calculations % v3.3
                 % (Nd_d/self.Le-Ns)
     
                 % Complete mass element matrix
-                M_m = M_tra.*C_tra + M_rot.*C_rot;
+                M_m = M_tra.*C_tra(1) + M_rot.*C_rot(1);
                 % Complete stiffness element matrix
-                M_k = K_ben.*C_ben + K_she.*C_she;
+                M_k = K_ben.*C_ben(1) + K_she.*C_she(1);
                 % ---------------------------------------------------------
     
                 % alocating the element matrices on the global
@@ -428,12 +437,12 @@ classdef calculations % v3.3
     function self = EigenSolve(self,BT)
     
         r_t = self.r(1); s_t = self.s(1); 
-        A = self.structure(1).A(1);
-        I = self.structure(1).I(1);
-        k = self.structure(1).k(1);
-        E = self.structure(1).E(1);
-        rho = self.structure(1).rho(1);
-        G = self.structure(1).G(1);
+        A = self.Beam(1).A(1);
+        I = self.Beam(1).I(1);
+        k = self.Beam(1).k(1);
+        E = self.Beam(1).E(1);
+        rho = self.Beam(1).rho(1);
+        G = self.Beam(1).G(1);
                
         % Computing the eigenvectors and eigenvalues
         [a_vet,a_val] = eig(self.matrices.CM\self.matrices.CK); 
@@ -463,85 +472,92 @@ classdef calculations % v3.3
         b = self.result.natfreq*B; 
 
         % Solution eigenvalues and Dispersion relations ===================
-        % if BT == 1 % Euler-Bernoulli --------------------------------------
-        %      % Beta
-        %     self.result.eigenvalues(:,1) = sqrt(b);
-        %     self.result.freq(:,1) = B*(b./(2*pi));
-        % 
-        % elseif BT == 2 % Rayleight Beam -----------------------------------
-        %     % Beta
-        %     self.result.eigenvalues(:,1) = sqrt((b.^2/2).*(r_t.^2 + sqrt(r_t.^4 + 4./b.^2)));
-        %     % Alpha
-        %     self.result.eigenvalues(:,2) = sqrt((b.^2/2).*(-r_t.^2 + sqrt(r_t.^4 + 4./b.^2)));
-        % 
-        %     self.result.freq(:,1) = B*(sqrt(self.result.eigenvalues(:,1).^2 - self.result.eigenvalues(:,2).^2)/2*pi*r_t);
-        % 
-        % elseif BT == 3 % Shear Beam ---------------------------------------
-        %     % Beta
-        %     self.result.eigenvalues(:,1) = sqrt((b.^2/2).*(s_t.^2 + sqrt(s_t.^4 + 4./b.^2)));
-        %     % Alpha
-        %     self.result.eigenvalues(:,2) = sqrt((b.^2/2).*(-s_t.^2 + sqrt(s_t.^4+ 4./b.^2)));
-        % 
-        %     self.result.freq(:,1) = B*(sqrt(self.result.eigenvalues(:,1).^2 - self.result.eigenvalues(:,2).^2)/2*pi*s_t);
-        % 
-        % elseif BT == 4 % Timoshenko Beam ----------------------------------
-        %     % Beta
-        %     self.result.eigenvalues(:,1) = sqrt((b.^2/2).*((r_t.^2+s_t.^2) + sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
-        %     % Alpha before critical frequency
-        %     self.result.eigenvalues(:,2) = sqrt((b.^2/2).*(-(r_t.^2+s_t.^2) + sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
-        %     % Alpha after the critical frequency
-        %     self.result.eigenvalues(:,3) = sqrt((b.^2/2).*((r_t.^2+s_t.^2) - sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
-        % 
-        %     for j = 1:size(b)
-        %         if b(j) < self.critical.b
-        %             % Natural frequency before critical frequency
-        %             self.result.freq(j,1) = B*(sqrt(self.result.eigenvalues(j,1).^2 - self.result.eigenvalues(j,2).^2)/ ...
-        %                 (2*pi*sqrt(r_t.^2+s_t.^2)));
-        %         elseif b(j) > self.critical.b
-        %             % Natural frequency after critical frequency
-        %             self.result.freq(j,2) = B*(sqrt(self.result.eigenvalues(j,1).^2 + self.result.igenvalues(j,3).^2)/ ...
-        %                 (2*pi*sqrt(r_t.^2+s_t.^2)));
-        %         end 
-        %     end
-        % 
-        % end % =============================================================
+        if BT == 1 % Euler-Bernoulli --------------------------------------
+             % Beta
+            self.result.dispersion(:,1) = sqrt(b);
+            self.result.freq(:,1) = B*(b./(2*pi));
 
-        %Dispersion relationship (wave number) ============================
-
-        if BT == 1 %Euler-Bernoulli ---------------------------------------
-            self.result.eigenvalues = sqrt(self.result.natfreq.*self.L.*sqrt(rho/ E)*self.S(1));
-
-        elseif BT == 2 %Rayleight Beam ------------------------------------
+        elseif BT == 2 % Rayleight Beam -----------------------------------
+            % Beta
+            self.result.dispersion(:,1) = sqrt((b.^2/2).*(r_t.^2 + sqrt(r_t.^4 + 4./b.^2)));
             % Alpha
-            self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(-(1/self.S(1))^2 + sqrt((1/self.S(1))^4 + 4./b.^2));
-            % Beta
-            self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt((1/self.S(1))^2 + sqrt((1/self.S(1))^4 + 4./b.^2));
+            self.result.dispersion(:,2) = sqrt((b.^2/2).*(-r_t.^2 + sqrt(r_t.^4 + 4./b.^2)));
 
-        elseif BT == 3 %Shear Beam -----------------------------------------
+            self.result.freq(:,1) = B*(sqrt(self.result.eigenvalues(:,1).^2 ...
+                - self.result.dispersion(:,2).^2)/2*pi*r_t);
+
+        elseif BT == 3 % Shear Beam ---------------------------------------
+            % Beta
+            self.result.dispersion(:,1) = sqrt((b.^2/2).*(s_t.^2 + sqrt(s_t.^4 + 4./b.^2)));
             % Alpha
-            self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(-(1/self.S(1)*self.gama(1))^2+...
-                sqrt((1/self.S(1)*self.gama(1))^4 + 4./b.^2));
+            self.result.dispersion(:,2) = sqrt((b.^2/2).*(-s_t.^2 + sqrt(s_t.^4+ 4./b.^2)));
+
+            self.result.freq(:,1) = B*(sqrt(self.result.eigenvalues(:,1).^2 ...
+                - self.result.dispersion(:,2).^2)/2*pi*s_t);
+
+        elseif BT == 4 % Timoshenko Beam ----------------------------------
             % Beta
-            self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt((1/self.S(1)*self.gama(1))^2+...
-                sqrt((1/self.S(1)*self.gama(1))^4 + 4./b.^2));
+            self.result.dispersion(:,1) = sqrt((b.^2/2).*((r_t.^2+s_t.^2) ...
+                + sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
+            % Alpha before critical frequency
+            self.result.dispersion(:,2) = sqrt((b.^2/2).*(-(r_t.^2+s_t.^2) ...
+                + sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
+            % Alpha after the critical frequency
+            self.result.dispersion(:,3) = sqrt((b.^2/2).*((r_t.^2+s_t.^2) ...
+                - sqrt((r_t.^2-s_t.^2)^2 + 4./b.^2)));
 
-        elseif BT == 4 %Timoshenko Beam -----------------------------------
-            % Alpha before critical frequencie
-            self.result.eigenvalues(:,3) = (b./sqrt(2)).*sqrt(((1/self.S(1))^2 +...
-                ((1/self.S(1))*self.gama(1))^2) - sqrt( ((1/self.S(1))^2 -...
-                ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
-
-            % Alpha after the critical frequencie
-            self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt(-((1/self.S(1))^2 +...
-                ((1/self.S(1))*self.gama(1))^2) + sqrt( ((1/self.S(1))^2 -...
-                ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
-
-            % Beta
-            self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(((1/self.S(1))^2 +...
-                ((1/self.S(1))*self.gama(1))^ 2) + sqrt( ((1/self.S(1))^2 -...
-                ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
+            for j = 1:size(b)
+                if b(j) < self.critical.b
+                    % Natural frequency before critical frequency
+                    self.result.freq(j,1) = B*(sqrt(self.result.dispersion(j,1).^2 ...
+                        - self.result.dispersion(j,2).^2)/ ...
+                        (2*pi*sqrt(r_t.^2+s_t.^2)));
+                elseif b(j) > self.critical.b
+                    % Natural frequency after critical frequency
+                    self.result.freq(j,2) = B*(sqrt(self.result.dispersion(j,1).^2 ...
+                        + self.result.dispersion(j,3).^2)/ ...
+                        (2*pi*sqrt(r_t.^2+s_t.^2)));
+                end 
+            end
 
         end % =============================================================
+
+        % %Dispersion relationship (wave number) ============================
+        % 
+        % if BT == 1 %Euler-Bernoulli ---------------------------------------
+        %     self.result.eigenvalues = sqrt(self.result.natfreq.*self.L.*sqrt(rho/ E)*self.S(1));
+        % 
+        % elseif BT == 2 %Rayleight Beam ------------------------------------
+        %     % Alpha
+        %     self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(-(1/self.S(1))^2 + sqrt((1/self.S(1))^4 + 4./b.^2));
+        %     % Beta
+        %     self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt((1/self.S(1))^2 + sqrt((1/self.S(1))^4 + 4./b.^2));
+        % 
+        % elseif BT == 3 %Shear Beam -----------------------------------------
+        %     % Alpha
+        %     self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(-(1/self.S(1)*self.gama(1))^2+...
+        %         sqrt((1/self.S(1)*self.gama(1))^4 + 4./b.^2));
+        %     % Beta
+        %     self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt((1/self.S(1)*self.gama(1))^2+...
+        %         sqrt((1/self.S(1)*self.gama(1))^4 + 4./b.^2));
+        % 
+        % elseif BT == 4 %Timoshenko Beam -----------------------------------
+        %     % Alpha before critical frequencie
+        %     self.result.eigenvalues(:,3) = (b./sqrt(2)).*sqrt(((1/self.S(1))^2 +...
+        %         ((1/self.S(1))*self.gama(1))^2) - sqrt( ((1/self.S(1))^2 -...
+        %         ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
+        % 
+        %     % Alpha after the critical frequencie
+        %     self.result.eigenvalues(:,2) = (b./sqrt(2)).*sqrt(-((1/self.S(1))^2 +...
+        %         ((1/self.S(1))*self.gama(1))^2) + sqrt( ((1/self.S(1))^2 -...
+        %         ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
+        % 
+        %     % Beta
+        %     self.result.eigenvalues(:,1) = (b./sqrt(2)).*sqrt(((1/self.S(1))^2 +...
+        %         ((1/self.S(1))*self.gama(1))^ 2) + sqrt( ((1/self.S(1))^2 -...
+        %         ((1/self.S(1))*self.gama(1))^2)^2 + 4./b.^2));
+        % 
+        % end % =============================================================
 
         % rigid body movement
         % Rbm = length(self.result.natfreq(self.result.natfreq<8));
@@ -574,12 +590,15 @@ classdef calculations % v3.3
             self.U_disp(i+1-self.coupled_mesh.BC_v(1),:) = A_vet(disp(i),:);
         end
         % Displacement normalization
-        self.U_disp = self.U_disp./max(abs((self.U_disp)));
+        % self.U_disp = self.U_disp./max(abs(self.U_disp));%max() abs()
+        self.U_disp = normalize(self.U_disp,"norm");
         for  j = 1:size(A_vet)
             if  self.U_disp(2,j) <= 0
                 self.U_disp(:,j) = -self.U_disp(:,j);
             end
         end
+        self.U_disp = self.U_disp.*(-1); 
+        %for inverting the plot vertically. same on U_rot.
         %------------------------------------------------------------------
 
         % Rotation --------------------------------------------------------
@@ -590,17 +609,18 @@ classdef calculations % v3.3
             self.U_rot(i+1-self.coupled_mesh.BC_v(2),:) = A_vet(rot(i),:);
         end
         % Rotation normalization
-        self.U_rot = self.U_rot./max(abs((self.U_rot)));
+        self.U_rot = self.U_rot./max(max(abs(self.U_rot)));
         for  j = 1:size(A_vet)
             if  self.U_rot(2,j) <= 0
                 self.U_rot(:,j) = -self.U_rot(:,j);
             end
         end
+        % self.U_rot = self.U_rot.*(-1);
         %------------------------------------------------------------------
     
     end % end FrequenciesComp
 
-    end 
+                                                                        end 
     % ============================ ANALYSIS ============================= %
                                                                     methods
     %% MODE SHAPES                                                         
@@ -623,15 +643,41 @@ classdef calculations % v3.3
             model = 'Timoshenko';
         end
 
-        % Normal mode shape -------------------------------------------
+        maxdisp = max(max(self.U_disp(:,1+ Rbm:self.modes+ + Rbm)))+0.05; 
+        maxrot = max(max(self.U_rot(:,1+ Rbm:self.modes+ + Rbm)))+0.05; 
+        mindisp = min(min(self.U_disp(:,1+ Rbm:self.modes+ + Rbm)))-0.05; 
+        minrot = min(min(self.U_rot(:,1+ Rbm:self.modes+ + Rbm)))-0.05; 
+
+
+        
+        % Rotation mode shape -----------------------------------------
         figure("Position",[460 40 500 300])
+        hold on
+        box on
+        grid on
+        title(sprintf('First %d rotation modes of a %s beam:',self.modes,model));
+        xlabel('\xi')
+        ylabel('V(\xi)')
+        axis([0 max(self.coupled_mesh.coordinates)/self.L minrot maxrot])
+        for  mode_cnt = 1:self.modes
+            plot(self.coupled_mesh.coordinates/self.L, self.U_rot(:,mode_cnt + Rbm),...
+                "DisplayName",sprintf('%dº mode',mode_cnt))
+            legend('-DynamicLegend');
+        end
+        legend ('show');
+        legend('Location','southwest')
+        hold off 
+        %--------------------------------------------------------------
+
+                % Normal mode shape -------------------------------------------
+        figure("Position",[460 342 500 300])
         hold on
         box on
         grid on
         title(sprintf('First %d mode of a %s beam:',self.modes,model));
         xlabel('\xi')
         ylabel('V(\xi)')
-        axis([0 max(self.coupled_mesh.coordinates)/self.L -1.5 1.5])
+        axis([0 max(self.coupled_mesh.coordinates)/self.L mindisp maxdisp])
         for  mode_cnt = 1:self.modes
             plot(self.coupled_mesh.coordinates/self.L,  self.U_disp(:,mode_cnt + Rbm),  ...
                 "DisplayName",sprintf('%dº mode',mode_cnt));
@@ -641,25 +687,6 @@ classdef calculations % v3.3
         legend('Location','southwest')
         hold off
         % -------------------------------------------------------------
-        
-        % Rotation mode shape -----------------------------------------
-        figure("Position",[460 370 500 300])
-        hold on
-        box on
-        grid on
-        title(sprintf('First %d rotation modes of a %s beam:',self.modes,model));
-        xlabel('\xi')
-        ylabel('V(\xi)')
-        axis([0 max(self.coupled_mesh.coordinates)/self.L -1.5 1.5])
-        for  mode_cnt = 1:self.modes
-            plot(self.coupled_mesh.coordinates/self.L, self.U_rot(:,mode_cnt + Rbm),...
-                "DisplayName",sprintf('%dº mode',mode_cnt))
-            legend('-DynamicLegend');
-        end
-        legend ('show');
-        legend('Location','southwest')
-        hold off
-        %--------------------------------------------------------------
 
     end % End of the plotting
 
@@ -852,10 +879,10 @@ classdef calculations % v3.3
                 omega_crit = self.critical.omega;
                 % ---------------------------------------------------------
 
-                A = self.structure(1).A(1);
-                I = self.structure(1).I(1);
-                E = self.structure(1).E(1);
-                rho = self.structure(1).rho(1);
+                A = self.Beam(1).A(1);
+                I = self.Beam(1).I(1);
+                E = self.Beam(1).E(1);
+                rho = self.Beam(1).rho(1);
 
                 % Alpha relation for Rayleight and shear beam, and Beta for
                 % Timoshenko. Change made because Alpha of tbt change
@@ -991,10 +1018,10 @@ classdef calculations % v3.3
                 natF_Hz = self.result.natfreqHz;
                 omega_crit = self.critical.omega;
 
-                A = self.structure(1).A(1);
-                I = self.structure(1).I(1);
-                E = self.structure(1).E(1);
-                rho = self.structure(1).rho(1);
+                A = self.Beam(1).A(1);
+                I = self.Beam(1).I(1);
+                E = self.Beam(1).E(1);
+                rho = self.Beam(1).rho(1);
                 % ---------------------------------------------------------
 
                 % Alpha relation for Rayleight and shear beam, and Beta for
@@ -1107,10 +1134,10 @@ classdef calculations % v3.3
                 wv_n = self.result.eigenvalues; % wave number
                 natF = self.result.natfreq;
 
-                A = self.structure(1).A(1);
-                I = self.structure(1).I(1);
-                E = self.structure(1).E(1);
-                rho = self.structure(1).rho(1);
+                A = self.Beam(1).A(1);
+                I = self.Beam(1).I(1);
+                E = self.Beam(1).E(1);
+                rho = self.Beam(1).rho(1);
                 % ---------------------------------------------------------
 
                 frequencies(j,1:modes) = wv_n(1+Rbm:modes+Rbm,1);
@@ -1148,10 +1175,10 @@ classdef calculations % v3.3
                 omega_crit = self.critical.omega;
 
 
-                A = self.structure(1).A(1);
-                I = self.structure(1).I(1);
-                E = self.structure(1).E(1);
-                rho = self.structure(1).rho(1);
+                A = self.Beam(1).A(1);
+                I = self.Beam(1).I(1);
+                E = self.Beam(1).E(1);
+                rho = self.Beam(1).rho(1);
                 % ---------------------------------------------------------
 
                 % Alpha relation for Rayleight and shear beam, and Beta for
@@ -1287,7 +1314,7 @@ classdef calculations % v3.3
             hold off
     end
 
-    end
+                                                                        end
     % ============================= STATIC ============================== %
                                                            methods (Static)
     %% LEGENDRE-GAUSS QUADRATURE BY GREG VON WINCKEL (2004)                
@@ -1420,10 +1447,11 @@ classdef calculations % v3.3
                 A = d1.*d2;
                 I = (d1.*d2.^3)/12;
                 k = 10*(1+nu)./(12+11.*nu);
+                % k = 5/6;
 
             elseif self.Beam(input).d3(el) == 3 % Hollow Circle ¨ ¨ ¨ ¨ ¨ ¨ 
-                A = pi*(d1^2 - d2^2);
-                I = (pi/2)*(d1^4 - d2^4);
+                A = pi*((d1/2)^2 - (d2/2)^2);
+                I = (pi/2)*((d1/2)^4 - (d2/2)^4);
                 k = (2 *(1+nu))/(4 + 3*nu);
 
             elseif self.Beam(input).d3(el) == 4 %Thin-Walled Square Tube¨ ¨
@@ -1445,12 +1473,12 @@ classdef calculations % v3.3
         end
         % -----------------------------------------------------------------
 
-        % % modifications ___________________________________________________
-        % if self.data(input).geo ==  1
-        % else
-        %     self = self.multilayer(self,input);
-        % end
-        % % _________________________________________________________________
+        % modifications ___________________________________________________
+        if self.data(input).geo ==  1
+        else
+            self = self.multilayer(self,input);
+        end
+        % _________________________________________________________________
     end
     %% DRAW #####                                                          
     function self = Draw(self)
@@ -1572,29 +1600,32 @@ classdef calculations % v3.3
     %% MULTILAYER #####                                                    
     function self = multilayer(self,inp)
 
-        % [radius, rho, E, nu, inital node, end node]  
-        % fields = {'r','rho','E','nu','no_i','no_f'};
-        % for f = 1:numel(fields)
-        %         prop_name = fields{f};
-        %         masu =  vertcat(self.data(inp).layer{:});
-        %     self.layer(inp).data.(prop_name) = masu(:,1);
-        % end
+        % layer = [radius, rho, E, nu, inital node, end node]  
+        fields = {'r','rho','E','nu'};
+        for f = 1:numel(fields)
+                prop_name = fields{f};
+                masu =  vertcat(self.data(inp).layer{:}(f));
+            self.layer(inp).data.(prop_name) = masu(:,1);
+        end
+    
+        init = length(fieldnames(self.layer(inp).data));
+        self.layer(inp).data.no_i = 0;
+        self.layer(inp).data.no_f = 0;
+        fields = {'no_i','no_f'};
+        for f = 1:numel(fields)
+            prop_name = fields{f};
+            masu =  vertcat(self.data(inp).layer{:}(f+init));
+            self.layer(inp).data.(prop_name) = masu(:,1);
+        end
 
-        fields = {'no _i','no_f'};
-        % for f = 1:numel(fields)
-        %     prop_name = fields{f};
-        %     masu =  vertcat(self.data(inp).layer{:});
-        %     self.layer(inp).data.(prop_name) = masu(:,1);
-        % end
-
-            masu =  vertcat(self.data(inp).(fields){:});
-        self.layer(inp).data.r = masu(:,1);
-        self.layer(inp).data.rho = self.data(inp).layer{:}(:,2);
-        self.layer(inp).data.E = self.data(inp).layer{:}(:,3);
-        self.layer(inp).data.nu = self.data(inp).layer{:}(:,4);
-        self.layer(inp).data.no_i = self.data(inp).layer{:}(:,5);
-        self.layer(inp).data.no_f = self.data(inp).layer{:}(:,6);
-
+        %     masu =  vertcat(self.data(inp).(fields){:});
+        % self.layer(inp).data.r = masu(:,1);
+        % self.layer(inp).data.rho = self.data(inp).layer{:}(:,2);
+        % self.layer(inp).data.E = self.data(inp).layer{:}(:,3);
+        % self.layer(inp).data.nu = self.data(inp).layer{:}(:,4);
+        % self.layer(inp).data.no_i = self.data(inp).layer{:}(:,5);
+        % self.layer(inp).data.no_f = self.data(inp).layer{:}(:,6);
+% 
         % % reorganizing values for each element ____________________________
         % fields = {'r','rho','E','nu'};
         % 
@@ -1622,7 +1653,8 @@ classdef calculations % v3.3
         % end
         % clear idx fields f new_values intervals counts values total_size i col_idx;
         % % _________________________________________________________________
-                % reorganizing values for each element ____________________________
+
+        % reorganizing values for each element ____________________________
         fields = {'r','rho','E','nu'};
 
         for f = 1:numel(fields)
@@ -1640,7 +1672,7 @@ classdef calculations % v3.3
                 intervals = [self.layer(inp).data.no_f(j); self.layer(inp).data.no_i(j)];
 
                 % fill new_values with the values to its respective nodes
-                for i = 1:numel(values) %
+                for i = 1:numel(values)
                     new_values(intervals(i+1):intervals(i),j) = values(i);
                 end
 
@@ -1716,8 +1748,8 @@ classdef calculations % v3.3
             nu = self.Beam(inp).nu(el);
 
             if form(el) == 1 || form(el) == 3 % pipe 
-                A = pi*(d1^2 - d2^2);
-                I = (pi/2)*(d1^4 - d2^4);
+                A = pi*((d1/2)^2 - (d2/2)^2);
+                I = (pi/64)*((d1)^4 - (d2)^4);
                 k = (2 *(1+nu))/(4 + 3*nu);
 
             elseif form(el) == 2 || form(el) == 4 % box
@@ -1736,14 +1768,14 @@ classdef calculations % v3.3
 
     end % end multilayer
 
-    end % static methods
-    methods (Access = private)
+                                                                        end
+                                                 methods (Access = private)
         % function result = cellcatcol(field, input, column)
         %     % only for convenience
         %     res = vertcat(self.data(input).(field){:});
         %     result = res(:,column);
         % end
-    end
+                                                                        end
 
     % ============================== END ================================ %
 end % classdef
