@@ -16,19 +16,22 @@ inp = 1; % beam index, for each beam, add one on its index
 
 data(inp).n_c = 10; % número de células unitárias
 
+alpha_artigo = 1-(4/8);
+LS2 = (alpha_artigo/2);
+LS1 = 1-2*LS2;
+
 data(inp).segments = [
   % [rho, E, nu,        d1, d2, form,       section_length, n_elements]
-  
-    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    0.025, 3; % simpa stepped tab 1
-    % 7850, 205e9, 0.3,   0.01, 0.0375, 2,    0.05, 5;  
-    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    0.025, 3;  
 
-    2700,  69e9, 0.3,   0.01, 0.0250, 2,    0.025, 3; % simpa bimat tab 1
-    7850, 205e9, 0.3,   0.01, 0.0250, 2,    0.05, 5;  
-    2700,  69e9, 0.3,   0.01, 0.0250, 2,    0.025, 3;  
+    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2, 3; % simpa stepped
+    % 7850, 205e9, 0.3,   0.01, 0.0375, 2,    LS1, 5;  
+    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2, 2;  
+
+    2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3 %1 simpa bimat
+    7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS1/10, 5;  
+    2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;  
 ];   
     
-     
 data(inp).L_c   = sum(data(inp).segments(:,8)); % Soma do número de elementos por célula
 data(inp).L = sum(data(inp).segments(:,7)) * data(inp).n_c;
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
@@ -116,7 +119,7 @@ FEA = calculations(data,BT,modes);
 
 % basic analysis
 % FEA = calculations.Draw(FEA); %2.1s for 100 el
-% FEA = ShapeModes(FEA,BT); % Mode shape for the chosen theory
+FEA = ShapeModes(FEA,BT); % Mode shape for the chosen theory
 % FEA = TheoriesModeShape(FEA); % Theories shape modes comparing
 
 % parameter analysis
