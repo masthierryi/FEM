@@ -1,13 +1,5 @@
 clear, clc, close all
-% MEF crazy beam by masthierryi
-% # version 3.2: 
-% -[Geometry.common][Material]common geometry and material parameters for each 
-% element using vectorization and a for loop;
-% -[menu] support beams with different mesh, lengths...; 
-% -[Coupling]{Coupled_mesh} couples the matrices and mesh
-% -[ModeShapes] the mode shapes are plotted in function of the coupled mesh
-% -{matrices}{result}{critical} response summarization with structs
-
+% MEF crazy beam by masthierryi - LAMEC  - UFPI
 tic()
 
 % OUTPUT __________________________________________________________________
@@ -17,65 +9,104 @@ modes = 3; % number of displayed frequencies and modes
 
 % INPUT ___________________________________________________________________
 
-% Input 1
+% Input type 2%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % -------------------------------------------------------------------------
 inp = 1; % beam index, for each beam, add one on its index
-% FEM parameters  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨  ¨
-data(inp).n_el = 100; % number of elements
-lt = data(inp).n_el; % number of the last elementa
+% parameters  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ 
 
-% beam parameters ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% [value, node*]; *last node that has this value. one line for each change
-data(inp).L   = 0.32122; %[m] Length
+data(inp).n_c = 10; % número de células unitárias
 
-fa = 0.00001; % o valor do interno é x vezes o externo
-data(inp).rho = {[fa*2710.3, 1, lt]}; %[kg/m^3] Specifc mass
+data(inp).segments = [
+  % [rho, E, nu,        d1, d2, form,       section_length, n_elements]
+  
+    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    0.025, 3; % simpa stepped tab 1
+    % 7850, 205e9, 0.3,   0.01, 0.0375, 2,    0.05, 5;  
+    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    0.025, 3;  
 
-data(inp).E   = {[fa*68.73e9, 1, lt]}; %[Pa] Youngs modulus
-
-data(inp).nu  = {[0.3, 1, lt]}; %[~] Poissons ratio
+    2700,  69e9, 0.3,   0.01, 0.0250, 2,    0.025, 3; % simpa bimat tab 1
+    7850, 205e9, 0.3,   0.01, 0.0250, 2,    0.05, 5;  
+    2700,  69e9, 0.3,   0.01, 0.0250, 2,    0.025, 3;  
+];   
+    
+     
+data(inp).L_c   = sum(data(inp).segments(:,8)); % Soma do número de elementos por célula
+data(inp).L = sum(data(inp).segments(:,7)) * data(inp).n_c;
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-
-% cross-section data  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% [d1**, d2**, form*, inital node, end node] 
-% *1 = circular; 2 = square; 3 = pipe; 4 = box; 20 = custom values;
-%
-% **form = 1 -> d1 is the radius
-% **form = 2 -> d1 and d2 are horizontal and vertical measures, respectively
-% **form = 3 -> d1 is the external radius, and d2, the internal radius
-% **form = 4 -> d1 is the external heigth, and d2, the internal heigth
-%
-% p.s.: this type of data.d only works for cross section forms with
-% two measures, for form = 1, the second measure is ignored.
-%
-% Use geo = 1 (common) for standard cross-sections: circle, retangle, pipe 
-% and box). on future implementations it may have a geometry method for tapered.
-% geo = 2 (multilayer) for a multilayer cross section, you must to use
-% square or circle dimensions, the inertia and layer for retangular box is
-% not present
-%
-% {[],[],[]...[]} and adjusting the nodes for stepped
-data(inp).d = {[0.020002, 0, 1, 1, lt]}; 
-
-% geo: 1 = common geometry; 2 = multilayer                                 
-% not working for timoshenko
-data(inp).geo = 1; 
-% ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+data(inp).noty = 2; % input by length, then calculate nodes
+data(inp).geo = 1; % lt = data(inp).n_el;
 
 % multilayer data ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % [radius, rho, E, nu, inital node, end node] 
-% one line for each new layer
+% one vector (line .: ";") for each new layer
+lt = sum(data(inp).segments(:,end)) * data(inp).n_c;
 data(inp).layer = {[0.01, 2710.3, 68.73e9, 0.3, 1,lt]}; 
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 
 % boundary conditions ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% [node where it is applied, sheer stress parametrer, momentum parametrer];
-% 1 = free; 0 = restrained %[N/m, N*m/rad]
-lno = data(inp).n_el+1;
-data(inp).BC = [ 1      1 1 ;  % at node 1, BC is 
-                 lt+1   1 1 ]; % 1 1 for coupling
+data(inp).BC = [ 1      0 1 ;  % at node 1, BC is 
+                 lt+1   0 1 ]; % 1 1 for coupling
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% -------------------------------------------------------------------------
+% -----------------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-----------------
+
+% % Input type 1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % -------------------------------------------------------------------------
+% inp = 1; % beam index, for each beam, add one on its index
+% % FEM parameters  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨  ¨
+% data(inp).n_el = 100; % number of elements
+% lt = data(inp).n_el; % number of the last elementa
+% 
+% % beam parameters ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% % [value, node*]; *last node that has this value. one line for each change
+% data(inp).L   = 0.32122; %[m] Length
+% 
+% fa = 1; % o valor do interno é x vezes o externo
+% data(inp).rho = {[fa*2710.3, 1, lt]}; %[kg/m^3] Specifc mass
+% 
+% data(inp).E   = {[fa*68.73e9, 1, lt]}; %[Pa] Youngs modulus
+% 
+% data(inp).nu  = {[0.3, 1, lt]}; %[~] Poissons ratio
+% % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% 
+% % cross-section data  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% % [d1**, d2**, form*, inital node, end node] 
+% % *1 = circular; 2 = square; 3 = pipe; 4 = box; 20 = custom values;
+% %
+% % **form = 1 -> d1 is the radius
+% % **form = 2 -> d1 and d2 are horizontal and vertical measures, respectively
+% % **form = 3 -> d1 is the external radius, and d2, the internal radius
+% % **form = 4 -> d1 is the external heigth, and d2, the internal heigth
+% %
+% % p.s.: this type of data.d only works for cross section forms with
+% % two measures, for form = 1, the second measure is ignored.
+% %
+% % Use geo = 1 (common) for standard cross-sections: circle, retangle, pipe 
+% % and box). on future implementations it may have a geometry method for tapered.
+% % geo = 2 (multilayer) for a multilayer cross section, you must to use
+% % square or circle dimensions, the inertia and layer for retangular box is
+% % not present
+% %
+% % {[],[],[]...[]} and adjusting the nodes for stepped
+% data(inp).d = {[0.010002, 0, 1, 1, lt]}; 
+% 
+% % geo: 1 = common geometry; 2 = multilayer                                 
+% % not working for timoshenko
+% data(inp).geo = 2; data(inp).noty = 1; 
+% % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% 
+% % multilayer data ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% % [radius, rho, E, nu, inital node, end node] 
+% % one line for each new layer
+% data(inp).layer = {[0.01, 2710.3, 68.73e9, 0.3, 1,lt]}; 
+% % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% 
+% % boundary conditions ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% % [node where it is applied, sheer stress parametrer, momentum parametrer];
+% % 1 = free; 0 = restrained %[N/m, N*m/rad]
+% lno = data(inp).n_el+1;
+% data(inp).BC = [ 1      1 1 ;  % at node 1, BC is 
+%                  lt+1   1 1 ]; % 1 1 for coupling
+% % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% % -------------------------%%%%%%%%%%%%%%%%%%%%%%%%%%-------------------------
 
 % _________________________________________________________________________
 % For each beam provided in the pages of the data (array inside the array), 
@@ -85,7 +116,7 @@ FEA = calculations(data,BT,modes);
 
 % basic analysis
 % FEA = calculations.Draw(FEA); %2.1s for 100 el
-FEA = ShapeModes(FEA,BT); % Mode shape for the chosen theory
+% FEA = ShapeModes(FEA,BT); % Mode shape for the chosen theory
 % FEA = TheoriesModeShape(FEA); % Theories shape modes comparing
 
 % parameter analysis

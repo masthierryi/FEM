@@ -49,27 +49,78 @@ classdef calculations
             self = parameters(self,BT,input);
         end
 
-        % for input = 1:size(data,2)
-        %     self.data(input) = data(input);
-        % 
-        %     self = FEM_setup(self,input);
-        %     self = parameters(self,BT,input);
-        % end
-
         self = Eigenproblem(self); % setting the matrices
         self = Coupling(self); % coupling all beam matrices
         self = EigenSolve(self,BT); % solving for the frequencies
     end
 
     %% FEM SETTING                                                         
-    function self = FEM_setup(self,input)
+    function self = FEM_setup(self,inp)
 
-        self.mesh(input).n_el = self.data(input).n_el; % number of elements
-        self.mesh(input).n_nodes = self.data(input).n_el+1;  % number of nodes
-        self.mesh(input).l_el = (self.data(input).L/self.mesh(input).n_el)/2; % lenght of an isolated el
+        % Geração automática da viga periódica 
+        self.data(inp).rho = []; self.data(inp).E   = []; self.data(inp).nu  = []; self.data(inp).d   = [];
+        segments = self.data(inp).segments;
 
-        % Coordinates increasing n_el times by n_el or L/n_el 
-        self.mesh(input).coordinates = [linspace(0,self.data(input).L,self.mesh(input).n_nodes)]';
+        for i = 0:self.data(inp).n_c-1
+            offset = i * self.data(inp).L_c; % Deslocamento baseado no número de elementos
+            elem_counter = 1 + offset;  % Começa sempre no primeiro elemento da célula
+            
+            for j = 1:size(segments, 1)
+                rho = segments(j, 1);
+                E   = segments(j, 2);
+                nu  = segments(j, 3);
+                d1  = segments(j, 4);
+                d2  = segments(j, 5);
+                form = segments(j, 6);
+                n_elements = segments(j, 8); % Número de elementos do segmento
+                
+                ini = elem_counter;         % Começo do segmento
+                fin = elem_counter + n_elements - 1; % Fim do segmento
+        
+                % Adiciona os valores às estruturas
+                self.data(inp).rho{end+1,1} = [rho, ini, fin];
+                self.data(inp).E{end+1,1}   = [E, ini, fin];
+                self.data(inp).nu{end+1,1}  = [nu, ini, fin];
+                self.data(inp).d{end+1,1}   = [d1, d2, form, ini, fin];
+        
+                % Atualiza o contador de elementos para o próximo segmento
+                elem_counter = fin + 1;
+            end
+        end
+
+    
+        if self.data(inp).noty == 1 % common
+
+            self.mesh(inp).n_el = self.data(inp).n_el; % number of elements
+            self.mesh(inp).n_nodes = self.data(inp).n_el+1;  % number of nodes
+            self.mesh(inp).l_el(1:self.mesh(inp).n_el) = ...
+                (self.data(inp).L/self.mesh(inp).n_el)/2; % lenght of an isolated el
+
+            % Coordinates increasing n_el times by n_el or L/n_el 
+            self.mesh(inp).coordinates = [linspace(0,self.data(inp).L,self.mesh(inp).n_nodes)]';
+
+        elseif self.data(inp).noty == 2 % periodic
+                
+            % Total de elementos: soma dos elementos por célula * número de células unitárias
+            self.mesh(inp).n_el = sum(self.data(inp).segments(:,8)) * self.data(inp).n_c;
+            self.mesh(inp).n_nodes = self.mesh(inp).n_el + 1;
+            
+            % Vetor de comprimentos dos elementos
+            l_el_unit = [];
+
+            for j = 1:size(self.data(inp).segments, 1)
+                l_el_unit = [l_el_unit, repmat(                                        ...
+                    (self.data(inp).segments(j, 7) / self.data(inp).segments(j, 8))/2, ...
+                    1, self.data(inp).segments(j, 8))];
+            end
+            
+            % Repete os comprimentos das células unitárias para preencher toda a viga
+            self.mesh(inp).l_el = [repmat(l_el_unit, 1, self.data(inp).n_c)]';
+
+            % Coordinates increasing n_el times by n_el or L/n_el 
+            self.mesh(inp).coordinates = [0, cumsum([self.mesh(inp).l_el]')]';
+            
+        end
     end
 
     %% PARAMETERS #####                                                    
@@ -186,8 +237,8 @@ classdef calculations
             % aux for allocating the elementar matrices on global
             satus = 1;
 
-            L_e = self.mesh(inp).l_el;
             for i = 1:self.mesh(inp).n_el % Loop for each element
+            L_e = self.mesh(inp).l_el(i);
             % =============================================================
 
                 % Shape functions 
@@ -225,41 +276,38 @@ classdef calculations
                 % ---------------------------------------------------------
             
                 % Final Beam _________________________________________
-       
+                rho = self.Beam.rho(i); A = self.Beam.A(i); E = self.Beam.E(i);
+                I = self.Beam.I(i); k = self.Beam.k(i); G = self.Beam.G(i);
+                r_e = self.Beam.r_e(i);
+                
                 if self.data(:).geo == 1  % if normal geometry
                     % constant for translation mass matrix
-                    C_tra = (self.Beam.rho).* (self.Beam.A).* L_e;
+                    C_tra = (rho).* (A).* L_e;
                     % constant for rotation mass matrix 
-                    C_rot = (self.Beam.r_e.^2).* (self.Beam.rho).* (self.Beam.A).* L_e^3;
+                    C_rot = (r_e.^2).* (rho).* (A).* L_e^3;
                     % constant for stiffness bending matrix (\frac{EI}{A})
-                    C_ben = ((self.Beam.E).* (self.Beam.I))./ L_e; 
+                    C_ben = ((E).* (I))./ L_e; 
                     % constant for stiffness shear matrix
-                    C_she = ((self.Beam.s_e.^2).* (self.Beam.k.* self.Beam.G.* (self.Beam.A).^2* L_e^3))./((self.Beam.E).* (self.Beam.I)); 
+                    C_she = ((s_e.^2).* (k.* G.* (A).^2* L_e^3))./((E).* (I)); 
 
                 else 
                     % constant for translation mass matrix
-                    C_tra = ((self.Beam.rho.*self.Beam.A) + (self.layer.rho.* self.layer.A)).* L_e;
+                    C_tra = ((rho.*A) + (self.layer.rho.* self.layer.A)).* L_e;
                     % constant for rotation mass matrix 
-                    C_rot = ((self.Beam.r_e).^2).* (self.Beam.rho + (sum(self.layer(:).rho, 2))).* (self.Beam.A + sum(self.layer(:).A, 2)).* L_e^3;
+                    C_rot = ((r_e).^2).* (rho + (sum(self.layer(:).rho, 2))).* (A + sum(self.layer(:).A, 2)).* L_e^3;
                     % constant for stiffness bending matrix (\frac{EI}{A})
-                    C_ben = ( ( self.Beam.E.* self.Beam.I ) + (self.layer.E.* self.layer.I) )./ L_e; % 
+                    C_ben = ( ( E.* I ) + (self.layer.E.* self.layer.I) )./ L_e; % 
                     % constant for stiffness shear matrix
-                    C_she = (s_e^2.* (self.Beam.k.* self.Beam.G.* (self.Beam.A + sum(self.layer(:).A, 2))).^2* L_e^3)./( (self.Beam.E + sum(self.layer(:).E, 2)).* (self.Beam.I + sum(self.layer(:).I, 2))); 
+                    C_she = (s_e^2.* (k.* G.* (A + sum(self.layer(:).A, 2))).^2* L_e^3)./( (E + sum(self.layer(:).E, 2)).* (I + sum(self.layer(:).I, 2))); 
                 end
                 % _________________________________________________________
-
-                % ---------------------------------------------------------
-                k = self.Beam(inp).k(i);
-                G = self.Beam(inp).G(i);
-                % ---------------------------------------------------------
     
                 % Computing the element matrix 
                 % ---------------------------------------------------------
                 M_tra = Nd * diag(w) * Nd';
                 M_rot = Ns * diag(w) * Ns';
                 K_ben = Ns_d * diag(w) * Ns_d';
-                K_she = (Nd_d/self.mesh.l_el-Ns) * diag(w) * (Nd_d/self.mesh.l_el-Ns)';
-                % (Nd_d/self.Le-Ns)
+                K_she = (Nd_d/self.mesh.l_el(i)-Ns) * diag(w) * (Nd_d/self.mesh.l_el(i)-Ns)';
     
                 % Complete mass element matrix
                 M_m = M_tra.*C_tra(1) + M_rot.*C_rot(1);
@@ -1382,7 +1430,7 @@ classdef calculations
             [values, intervals] = deal(masu(:, 1), masu(:, end-1:end));
 
             % calculate the size of the vector
-            new_values = zeros(self.data(input).n_el, 1); % pre-allocate new_values
+            new_values = zeros(self.mesh(input).n_el, 1); % pre-allocate new_values
 
             % fill new_values with the values to its respective nodes
             for i = 1:numel(values)
@@ -1417,11 +1465,11 @@ classdef calculations
             end
 
             % calculate the size of the vector
-            new_values = zeros(self.data(input).n_el, 1); % pre-allocate new_values
+            new_values = zeros(self.mesh(input).n_el, 1); % pre-allocate new_values
 
             % fill new_values with the values to its respective nodes
             for i = 1:size(intervals,1)
-                new_values(intervals(i,1) : intervals(i,2)) = values(i);
+                new_values(intervals(i,1) : intervals(i,2)) = new_values(intervals(i,1) : intervals(i,2)) + values(i);
             end
 
             % store the vector on its due field
@@ -1699,7 +1747,7 @@ classdef calculations
         %     end
         % 
         %     % calculate the size of the vector
-        %     new_values = zeros(self.data(input).n_el, 1); % pre-allocate new_values
+        %     new_values = zeros(self.mesh(input).n_el, 1); % pre-allocate new_values
         % 
         %     % fill new_values with the values to its respective nodes
         %     for i = 1:size(intervals,1)
