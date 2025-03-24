@@ -1361,7 +1361,121 @@ classdef calculations
 
             hold off
     end
+    %% natFreq x shape mode number + bandgap                               
+    function self = Freq_spectra(self, BT, nmr)
+        modelTypes = {'Euler-Bernoulli', 'Rayleigh', 'Shear', 'Timoshenko'};
+        model = modelTypes{BT};  
+    
+        freqs = self.result.natfreq(1:nmr);
+    
+        maxfreq = freqs(end) + (freqs(end) - freqs(end-1));
 
+
+        dfreq = diff(freqs); countgaps = 1;
+        gap_indices = []; bandgap_starts = []; bandgap_ends = [];
+        for i = 2:size(dfreq)
+            if dfreq(i) < (dfreq(i-1)/2)
+                gap_indices = i-1;
+                bandgap_starts = [bandgap_starts; freqs(gap_indices)];
+                bandgap_ends = [bandgap_ends;freqs(gap_indices + 1)];
+                gapvalue = bandgap_ends - bandgap_starts; 
+                countgaps = countgaps+1;
+            end
+        end
+
+    
+        % Plotagem
+        figure
+        hold on
+        box on
+        title(sprintf('Frequencies of %s Beam', model));
+        xlabel('n')
+        ylabel('\omega_n')
+        axis([1 nmr 0 maxfreq])
+    
+        % Plot das frequências naturais
+        scatter(1:nmr, freqs, 25, 'filled', 'blue')
+    
+        % Destacando múltiplos bandgaps
+        for i = 1:length(bandgap_starts)
+            fill([0, nmr, nmr, 0], [bandgap_starts(i), bandgap_starts(i), bandgap_ends(i), bandgap_ends(i)], ...
+                 'blue', 'FaceAlpha', 0.1, 'EdgeColor', 'none');
+            str = {sprintf('%f',gapvalue(i))};
+            text(2,bandgap_ends(i),str);
+        end
+    
+        legend("Frequencies", "Bandgaps", "Location","northwest")
+        hold off
+    end
+
+        %% E x natFreq #####                                                   
+        function self = Prismatic_Saturation(self,modes,data)
+            
+            % Reseting the saturation parameter
+            alpha = [1/8,2/8,3/8,4/8,5/8,6/8,7/8];
+            nmr = size(alpha,2); 
+
+            % Prealocating the frequencies and changes matrix
+            frequencies = ones(nmr,size(modes,2));
+
+            for j = 1:nmr
+                BT = 1;
+                
+                % ---------------------------------------------------------
+                for inp = 1:size(data,2)
+                    LS2 = (1-alpha(j))/2;
+                    LS1 = alpha(j);
+                    % LS2 = (alpha(j)/2);
+                    % LS1 = 1 - 2*LS2;
+
+                    self.data(inp).segments = [
+                        % [rho, E, nu,        d1, d2, form,       section_length, n_elements]
+
+                        % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3; % simpa stepped
+                        % 7850, 205e9, 0.3,   0.01, 0.0375, 2,    LS1/10, 5;
+                        % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;
+
+                        2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3 %1 simpa bimat
+                        7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS1/10, 5;
+                        2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;
+                        ];
+                    self = FEM_setup(self,inp);
+                    self = parameters(self,BT,inp);
+                end
+        
+                self = Eigenproblem(self); % setting the matrices
+                self = Coupling(self); % coupling all beam matrices
+                self = EigenSolve(self,BT); % solving for the frequencies
+
+                wv_n = self.result.natfreq; % wave number
+                % ---------------------------------------------------------
+
+                frequencies(j,1:size(modes,2)) = [wv_n(modes',1)]';
+            end
+
+            % Ploting the frequencies -------------------------------------
+            figure
+            hold on
+            box on
+
+            el2 = plot(alpha, frequencies, '-s', 'LineWidth', 1); % Plota as linhas normalmente
+            
+            % Gera as legendas em ordem inversa
+            legends = arrayfun(@(k) sprintf('Mode %d', modes(k)), length(modes):-1:1, 'UniformOutput', false);
+            
+            % Aplica a legenda invertida
+            legend(flip(el2), legends,'Location','northwest');
+
+            xlabel('\alpha')
+            ylabel('\omega_n')
+            xticks(alpha)
+            axis('tight')
+            title('Natural Frequency x Saturation parameter (\alpha)')
+            % legend('show','Location','north')
+
+            hold off
+            % -------------------------------------------------------------
+    end
                                                                         end
     % ============================= STATIC ============================== %
                                                            methods (Static)
