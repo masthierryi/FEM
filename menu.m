@@ -4,7 +4,7 @@ tic()
 
 % OUTPUT __________________________________________________________________
 BT = 1; % Beam theories: 1 = EBT; 2 = RBT; % 3 = SBT; 4 = TBT
-modes = 3; % number of displayed frequencies and modes
+modes = 9:11; % number of displayed frequencies and modes
 % _________________________________________________________________________
 
 % INPUT ___________________________________________________________________
@@ -16,16 +16,16 @@ inp = 1; % beam index, for each beam, add one on its index
 
 data(inp).n_c = 10; % número de células unitárias
 
-alpha_artigo = 1-(1/8);
+alpha_artigo = 1-(4/8);
 LS2 = (alpha_artigo/2);
 LS1 = 1-2*LS2;
 
 data(inp).segments = [
   % [rho, E, nu,        d1, d2, form,       section_length, n_elements]
 
-    7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3; % simpa stepped
-    7850, 205e9, 0.3,   0.01, 0.0375, 2,    LS1/10, 5;  
-    7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;  
+    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3; % simpa stepped
+    % 7850, 205e9, 0.3,   0.01, 0.0375, 2,    LS1/10, 5;  
+    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;  
 
     % 2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3 %1 simpa bimat
     % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS1/10, 5;  
@@ -36,7 +36,7 @@ data(inp).L_c   = sum(data(inp).segments(:,8)); % Soma do número de elementos p
 data(inp).L = sum(data(inp).segments(:,7)) * data(inp).n_c;
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 data(inp).noty = 2; % input by length, then calculate nodes
-data(inp).geo = 1; % lt = data(inp).n_el;
+data(inp).geo = 2; % lt = data(inp).n_el;
 
 % multilayer data ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % [radius, rho, E, nu, inital node, end node] 
@@ -118,9 +118,9 @@ data(inp).BC = [ 1      0 1 ;  % at node 1, BC is
 FEA = calculations(data,BT,modes); 
 
 % basic analysis
-calculations.Draw(FEA); %2.1s for 100 el
-ShapeModes(FEA,BT); % Mode shape for the chosen theory
-% TheoriesModeShape(FEA); % Theories shape modes comparing
+% calculations.Draw(FEA); %2.1s for 100 el
+ShapeModes(FEA,BT,modes); % Mode shape for the chosen theory
+% TheoriesModeShape(FEA,modes); % Theories shape modes comparing
 
 % parameter analysis
 type = 3;
@@ -133,7 +133,7 @@ type = 3;
 % E_natFreq(FEA,modes,data,type);
 % slendernessR_natFreq(FEA,modes,data,type); 
 % Freq_spectra(FEA,BT,22);
-% Prismatic_Saturation(FEA,18:22,data); 
+% Periodic_Saturation(FEA,18:22,data); 
 
 % _________________________________________________________________________
 
