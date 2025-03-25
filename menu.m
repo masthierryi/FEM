@@ -4,7 +4,7 @@ tic()
 
 % OUTPUT __________________________________________________________________
 BT = 1; % Beam theories: 1 = EBT; 2 = RBT; % 3 = SBT; 4 = TBT
-modes = 3; % number of displayed frequencies and modes
+modes = 1:4; % number of displayed frequencies and modes
 % _________________________________________________________________________
 
 % INPUT ___________________________________________________________________
@@ -16,17 +16,21 @@ inp = 1; % beam index, for each beam, add one on its index
 
 data(inp).n_c = 10; % número de células unitárias
 
-alpha_artigo = 1-(1/8);
+alpha_artigo = 1-(4/8);
 LS2 = (alpha_artigo/2);
 LS1 = 1-2*LS2;
 
 data(inp).segments = [
   % [rho, E, nu,        d1, d2, form,       section_length, n_elements]
-
+    % 1000, 500e6, 0.3,   32e-3, 0.0250, 1,     27e-3, 6;
+    % 1830, 100e6, 0.3,   35e-3, 0.0250, 1,    0.5e-3, 2;
+    % 1360,  10e6, 0.3,   32e-3, 0.0250, 1,     12e-3, 3;
+    % 1830, 100e6, 0.3,   35e-3, 0.0250, 1,    0.5e-3, 2;
+% 
     7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3; % simpa stepped
     7850, 205e9, 0.3,   0.01, 0.0375, 2,    LS1/10, 5;  
     7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;  
-
+%
     % 2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3 %1 simpa bimat
     % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS1/10, 5;  
     % 2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;  
@@ -39,88 +43,57 @@ data(inp).noty = 2; % input by length, then calculate nodes
 data(inp).geo = 1; % lt = data(inp).n_el;
 
 % multilayer data ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% [radius, rho, E, nu, inital node, end node] 
-% one vector (line .: ";") for each new layer
 lt = sum(data(inp).segments(:,end)) * data(inp).n_c;
-data(inp).layer = {[0.01, 2710.3, 68.73e9, 0.3, 1,lt]}; 
+% data(inp).n_c_l = 10;
+% 
+% % [radius, rho, E, nu, inital node, end node]
+% data(inp).layer = [3e-3, 1830, 5000e6, 0.3, 1, 6;
+%                                 0, 0, 0, 0, 7, 8;
+%                    3e-3, 1200, 175e6, 0.3, 9, 11;
+%                               0, 0, 0, 0, 12, 13;
+% ]; 
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 
 % boundary conditions ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 data(inp).BC = [ 1      0 1 ;  % at node 1, BC is 
                  lt+1   0 1 ]; % 1 1 for coupling
 % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% -----------------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-----------------
+% ----------------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-------------------
 
-% % Input type 1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % -------------------------------------------------------------------------
-% inp = 1; % beam index, for each beam, add one on its index
-% % FEM parameters  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨  ¨
-% data(inp).n_el = 100; % number of elements
-% lt = data(inp).n_el; % number of the last elementa
+% % Input 2 ------- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ------------------
+% inp = 2; 
+% % parameters  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ 
+% data(inp).n_c = 1;
+% data(inp).segments = [
+%   1000, 500e6, 0.3,   32e-3, 0.0250, 1,     27e-3, 6;
+% ];   
 % 
-% % beam parameters ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% % [value, node*]; *last node that has this value. one line for each change
-% data(inp).L   = 0.32122; %[m] Length
-% 
-% fa = 1; % o valor do interno é x vezes o externo
-% data(inp).rho = {[fa*2710.3, 1, lt]}; %[kg/m^3] Specifc mass
-% 
-% data(inp).E   = {[fa*68.73e9, 1, lt]}; %[Pa] Youngs modulus
-% 
-% data(inp).nu  = {[0.3, 1, lt]}; %[~] Poissons ratio
+% data(inp).L_c   = sum(data(inp).segments(:,8)); 
+% data(inp).L = sum(data(inp).segments(:,7)) * data(inp).n_c;
 % % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% 
-% % cross-section data  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% % [d1**, d2**, form*, inital node, end node] 
-% % *1 = circular; 2 = square; 3 = pipe; 4 = box; 20 = custom values;
-% %
-% % **form = 1 -> d1 is the radius
-% % **form = 2 -> d1 and d2 are horizontal and vertical measures, respectively
-% % **form = 3 -> d1 is the external radius, and d2, the internal radius
-% % **form = 4 -> d1 is the external heigth, and d2, the internal heigth
-% %
-% % p.s.: this type of data.d only works for cross section forms with
-% % two measures, for form = 1, the second measure is ignored.
-% %
-% % Use geo = 1 (common) for standard cross-sections: circle, retangle, pipe 
-% % and box). on future implementations it may have a geometry method for tapered.
-% % geo = 2 (multilayer) for a multilayer cross section, you must to use
-% % square or circle dimensions, the inertia and layer for retangular box is
-% % not present
-% %
-% % {[],[],[]...[]} and adjusting the nodes for stepped
-% data(inp).d = {[0.010002, 0, 1, 1, lt]}; 
-% 
-% % geo: 1 = common geometry; 2 = multilayer                                 
-% % not working for timoshenko
-% data(inp).geo = 2; data(inp).noty = 1; 
-% % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
+% data(inp).noty = 2; data(inp).geo = 2;
 % 
 % % multilayer data ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% % [radius, rho, E, nu, inital node, end node] 
-% % one line for each new layer
-% data(inp).layer = {[0.01, 2710.3, 68.73e9, 0.3, 1,lt]}; 
+% lt = sum(data(inp).segments(:,end)) * data(inp).n_c;
+% data(inp).n_c_l = 1;
+% 
+% data(inp).layer = [3e-3, 1830, 5000e6, 0.3, 1, 6;
+% ]; 
 % % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
 % 
 % % boundary conditions ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% % [node where it is applied, sheer stress parametrer, momentum parametrer];
-% % 1 = free; 0 = restrained %[N/m, N*m/rad]
-% lno = data(inp).n_el+1;
-% data(inp).BC = [ 1      1 1 ;  % at node 1, BC is 
-%                  lt+1   1 1 ]; % 1 1 for coupling
+% data(inp).BC = [ 1      1 1  ;  % 1 1 for coupling
+%                  lt+1   0 0 ];  
 % % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-% % -------------------------%%%%%%%%%%%%%%%%%%%%%%%%%%-------------------------
+% % ----------------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-------------------
 
 % _________________________________________________________________________
-% For each beam provided in the pages of the data (array inside the array), 
-% its matrix are calculated individually. Then, these matrices are assembled 
-% into a global matrix and the eigenvalue problem is solved for the entire system.
 FEA = calculations(data,BT,modes); 
 
 % basic analysis
 calculations.Draw(FEA); %2.1s for 100 el
-ShapeModes(FEA,BT); % Mode shape for the chosen theory
-% TheoriesModeShape(FEA); % Theories shape modes comparing
+ShapeModes(FEA,BT,modes); % Mode shape for the chosen theory
+% TheoriesModeShape(FEA,modes); % Theories shape modes comparing
 
 % parameter analysis
 type = 3;
@@ -132,8 +105,8 @@ type = 3;
 % Rho_natFreq(FEA,modes,data,type);
 % E_natFreq(FEA,modes,data,type);
 % slendernessR_natFreq(FEA,modes,data,type); 
-% Freq_spectra(FEA,BT,22);
-% Prismatic_Saturation(FEA,18:22,data); 
+Freq_spectra(FEA,BT,22);
+Periodic_Saturation(FEA,18:22,data); 
 
 % _________________________________________________________________________
 
