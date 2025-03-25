@@ -43,6 +43,7 @@ classdef calculations
         self.L = sum([data.L]); % sum of lenght of all coupled beams
 
         for input = 1:size(data,2)
+            self.data = data;
             self.data(input) = data(input);
             
             self = FEM_setup(self,input);
@@ -91,8 +92,8 @@ classdef calculations
     
         if self.data(inp).noty == 1 % common
 
-            self.mesh(inp).n_el = self.data(inp).n_el; % number of elements
-            self.mesh(inp).n_nodes = self.data(inp).n_el+1;  % number of nodes
+            self.mesh(inp).n_el = self.mesh(inp).n_el; % number of elements
+            self.mesh(inp).n_nodes = self.mesh(inp).n_el+1;  % number of nodes
             self.mesh(inp).l_el(1:self.mesh(inp).n_el) = ...
                 (self.data(inp).L/self.mesh(inp).n_el)/2; % lenght of an isolated el
 
@@ -123,7 +124,7 @@ classdef calculations
         end
     end
 
-    %% PARAMETERS #####                                                    
+    %% PARAMETERS #                                                        
     function self = parameters(self,BT,input)
 
         self = self.geometry(self,input);
@@ -159,7 +160,7 @@ classdef calculations
             elseif BT == 4 % Timoshenko BT  ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
                 % r_el = sqrt(I./ (A.* l_e^2));
                 % s_el = sqrt((E./ (k.* G)).* r_el.^2);
-                r_el = sqrt(I./ (A.* l_e^2));
+                r_el = sqrt(I./ (A.* l_e(el)^2));
                 s_el = sqrt((E./(k.*G)).*r_el.^2);
                 
             end
@@ -190,27 +191,6 @@ classdef calculations
                                   % - - - - - - - - - - - - - - - - - - - -
 
         % ______________________________________________________________
-        % if input == 1 % pre-allocation 
-        %     self.structure = self.Beam(input);
-        % end
-        % if self.data(input).geo == 1  % if normal geometry
-        %     self.structure(input) = self.Beam(input);
-        % else 
-        %     beam = self.Beam(input); 
-        %     self.structure(input) = struct(...
-        %         'd1', beam.k, ...
-        %         'd2', beam.k, ...
-        %         'd3', beam.k, ...
-        %         'k', beam.k, ...
-        %         'G', beam.G, ...
-        %         'r_e', beam.r_e, ...
-        %         's_e', beam.s_e, ...
-        %         'nu', beam.nu, ...
-        %         'A', beam.A + sum(self.layer(input).A, 2), ...
-        %         'I', beam.I + sum(self.layer(input).I, 2), ...
-        %         'rho', beam.rho + sum(self.layer(input).rho, 2), ...
-        %         'E', beam.E); 
-        % end
 
     end % end of function parameters
 
@@ -276,11 +256,11 @@ classdef calculations
                 % ---------------------------------------------------------
             
                 % Final Beam _________________________________________
-                rho = self.Beam.rho(i); A = self.Beam.A(i); E = self.Beam.E(i);
-                I = self.Beam.I(i); k = self.Beam.k(i); G = self.Beam.G(i);
-                r_e = self.Beam.r_e(i);
+                rho = self.Beam(inp).rho(i); A = self.Beam(inp).A(i); E = self.Beam(inp).E(i);
+                I = self.Beam(inp).I(i); k = self.Beam(inp).k(i); G = self.Beam(inp).G(i);
+                r_e = self.Beam(inp).r_e(i);
                 
-                if self.data(:).geo == 1  % if normal geometry
+                if self.data(inp).geo == 1  % if normal geometry
                     % constant for translation mass matrix
                     C_tra = (rho).* (A).* L_e;
                     % constant for rotation mass matrix 
@@ -292,13 +272,13 @@ classdef calculations
 
                 else 
                     % constant for translation mass matrix
-                    C_tra = ((rho.*A) + (self.layer.rho.* self.layer.A)).* L_e;
+                    C_tra = ((rho.*A) + (self.layer(inp).rho.* self.layer(inp).A)).* L_e;
                     % constant for rotation mass matrix 
-                    C_rot = ((r_e).^2).* (rho + (sum(self.layer(:).rho, 2))).* (A + sum(self.layer(:).A, 2)).* L_e^3;
+                    C_rot = ((r_e).^2).* (rho + (sum(self.layer(inp).rho, 2))).* (A + sum(self.layer(inp).A, 2)).* L_e^3;
                     % constant for stiffness bending matrix (\frac{EI}{A})
-                    C_ben = ( ( E.* I ) + (self.layer.E.* self.layer.I) )./ L_e; % 
+                    C_ben = ( ( E.* I ) + (self.layer(inp).E.* self.layer(inp).I) )./ L_e; % 
                     % constant for stiffness shear matrix
-                    C_she = (s_e^2.* (k.* G.* (A + sum(self.layer(:).A, 2))).^2* L_e^3)./( (E + sum(self.layer(:).E, 2)).* (I + sum(self.layer(:).I, 2))); 
+                    C_she = (s_e^2.* (k.* G.* (A + sum(self.layer(inp).A, 2))).^2* L_e^3)./( (E + sum(self.layer(inp).E, 2)).* (I + sum(self.layer(inp).I, 2))); 
                 end
                 % _________________________________________________________
     
@@ -307,7 +287,7 @@ classdef calculations
                 M_tra = Nd * diag(w) * Nd';
                 M_rot = Ns * diag(w) * Ns';
                 K_ben = Ns_d * diag(w) * Ns_d';
-                K_she = (Nd_d/self.mesh.l_el(i)-Ns) * diag(w) * (Nd_d/self.mesh.l_el(i)-Ns)';
+                K_she = (Nd_d/self.mesh(inp).l_el(i)-Ns) * diag(w) * (Nd_d/self.mesh(inp).l_el(i)-Ns)';
     
                 % Complete mass element matrix
                 M_m = M_tra.*C_tra(1) + M_rot.*C_rot(1);
@@ -377,7 +357,7 @@ classdef calculations
 
     end % end the matrix
     
-    %% COUPLING #####                                                      
+    %% COUPLING ##                                                         
     function self = Coupling(self)
         
         % get the size of matrices inside self.matrices.K
@@ -672,43 +652,70 @@ classdef calculations
     % ============================ ANALYSIS ============================= %
                                                                     methods
     %% MODE SHAPES                                                         
-    function self = ShapeModes(self,BT)
+    function self = ShapeModes(self,BT,modes)
     
         % Removing rigid body movement
         Rbm = length(self.result.natfreq(self.result.natfreq<8));
-
-        % % Data display
-        % frequencies(1,:) = self.result.eigenvalues(1+Rbm:self.modes+Rbm);
-        % display(frequencies)
         
-        if BT == 1
-            model = 'Euler-Bernoulli';
-        elseif BT == 2
-            model = 'Rayleigh';
-        elseif BT == 3
-            model = 'Shear';
-        elseif BT == 4
-            model = 'Timoshenko';
-        end
+        modelTypes = {'EBT', 'RBT', 'SBT', 'TBT'};
+        model = modelTypes{BT};  
 
-        maxdisp = max(max(self.U_disp(:,1+ Rbm:self.modes+ + Rbm)))+0.05; 
-        maxrot = max(max(self.U_rot(:,1+ Rbm:self.modes+ + Rbm)))+0.05; 
-        mindisp = min(min(self.U_disp(:,1+ Rbm:self.modes+ + Rbm)))-0.05; 
-        minrot = min(min(self.U_rot(:,1+ Rbm:self.modes+ + Rbm)))-0.05; 
+        maxdisp = max(max(self.U_disp(:,modes(1)+ Rbm:modes(end)+ + Rbm)))+0.05; 
+        maxrot = max(max(self.U_rot(:,modes(1)+ Rbm:modes(end)+ + Rbm)))+0.05; 
+        mindisp = min(min(self.U_disp(:,modes(1)+ Rbm:modes(end)+ + Rbm)))-0.05; 
+        minrot = min(min(self.U_rot(:,modes(1)+ Rbm:modes(end)+ + Rbm)))-0.05; 
 
+        % % Rotation mode shape -----------------------------------------
+        % figure("Position",[460 40 500 300])
+        % hold on
+        % box on
+        % grid on
+        % title(sprintf('First %d rotation modes of a %s beam:',self.modes,model));
+        % xlabel('\xi')
+        % ylabel('V(\xi)')
+        % axis([0 max(self.coupled_mesh.coordinates)/self.L minrot maxrot])
+        % for  mode_cnt = modes(1):modes(end)
+        %     plot(self.coupled_mesh.coordinates/self.L, self.U_rot(:,mode_cnt + Rbm),...
+        %         "DisplayName",sprintf('%dº mode',mode_cnt))
+        %     legend('-DynamicLegend');
+        % end
+        % legend ('show');
+        % legend('Location','southwest')
+        % hold off 
+        % %--------------------------------------------------------------
+        % 
+        %         % Normal mode shape -------------------------------------------
+        % figure("Position",[460 342 500 300])
+        % hold on
+        % box on
+        % grid on
+        % title(sprintf('First %d mode of a %s beam:',self.modes,model));
+        % xlabel('\xi')
+        % ylabel('V(\xi)')
+        % axis([0 max(self.coupled_mesh.coordinates)/self.L mindisp maxdisp])
+        % for  mode_cnt = modes(1):modes(end)
+        %     plot(self.coupled_mesh.coordinates/self.L,  self.U_disp(:,mode_cnt + Rbm),  ...
+        %         "DisplayName",sprintf('%dº mode',mode_cnt));
+        %     legend('-DynamicLegend');
+        % end
+        % legend ('show');
+        % legend('Location','southwest')
+        % hold off
+        % % -------------------------------------------------------------
 
-        
+        % HALF MODES ======================================================
+        half  = 1:round(size(self.coupled_mesh.coordinates,1)/2);
         % Rotation mode shape -----------------------------------------
         figure("Position",[460 40 500 300])
         hold on
         box on
         grid on
-        title(sprintf('First %d rotation modes of a %s beam:',self.modes,model));
+        title(sprintf('Rotation modes of a %s beam:',model));
         xlabel('\xi')
         ylabel('V(\xi)')
-        axis([0 max(self.coupled_mesh.coordinates)/self.L minrot maxrot])
-        for  mode_cnt = 1:self.modes
-            plot(self.coupled_mesh.coordinates/self.L, self.U_rot(:,mode_cnt + Rbm),...
+        axis([0 max(self.coupled_mesh.coordinates(half))/self.L minrot maxrot])
+        for  mode_cnt = modes(1):modes(end)
+            plot(self.coupled_mesh.coordinates(half)/self.L, self.U_rot(half,mode_cnt + Rbm),...
                 "DisplayName",sprintf('%dº mode',mode_cnt))
             legend('-DynamicLegend');
         end
@@ -722,12 +729,12 @@ classdef calculations
         hold on
         box on
         grid on
-        title(sprintf('First %d mode of a %s beam:',self.modes,model));
+        title(sprintf('Shape modes of a %s beam:',model));
         xlabel('\xi')
         ylabel('V(\xi)')
-        axis([0 max(self.coupled_mesh.coordinates)/self.L mindisp maxdisp])
-        for  mode_cnt = 1:self.modes
-            plot(self.coupled_mesh.coordinates/self.L,  self.U_disp(:,mode_cnt + Rbm),  ...
+        axis([0 max(self.coupled_mesh.coordinates(half))/self.L mindisp maxdisp])
+        for  mode_cnt = modes(1):modes(end)
+            plot(self.coupled_mesh.coordinates(half)/self.L,  self.U_disp(half,mode_cnt + Rbm),  ...
                 "DisplayName",sprintf('%dº mode',mode_cnt));
             legend('-DynamicLegend');
         end
@@ -739,7 +746,8 @@ classdef calculations
     end % End of the plotting
 
     %% ALL THEORIES SHAPE MODES COMPARING                                  
-    function self = TheoriesModeShape(self)
+    function self = TheoriesModeShape(self,modes)
+        nmodes = size(modes,2);
 
         % Removing rigid body movement
         Rbm = length(self.result.natfreq(self.result.natfreq<8));
@@ -748,17 +756,11 @@ classdef calculations
         figure;
         box on
         grid on
-        title(sprintf('First %d Mode Shapes of all theories',self.modes));
+        title(sprintf('%d Mode Shapes of all theories',modes));
         xlabel('\xi')
         ylabel('V(\xi)')
         for i = 1:4
             BT = i;
-
-            % Reruning the code for each beam theory
-            % for input = 1:size(self.data,2)
-            %     self = parameters(self,BT,input);
-            %     self = Eigenproblem(self);
-            % end
 
             for input = 1:size(self.data,2)
                 self = parameters(self,BT,input);
@@ -769,8 +771,8 @@ classdef calculations
             self = EigenSolve(self,BT); % solving for the frequencies
 
             % Ploting the value for this theory
-            for  mode_cnt = 1:self.modes
-                subplot(self.modes,1,mode_cnt);
+            for  mode_cnt = modes(1):modes(end)
+                subplot(nmodes,1,mode_cnt);
                 hold on
                 p = plot(self.coupled_mesh.coordinates/self.L,self.U_disp(:,mode_cnt + Rbm));
                 title(sprintf('mode %d',mode_cnt));
@@ -874,15 +876,16 @@ classdef calculations
 
     %% Rho x natFreq #####                                                 
     function self = Rho_natFreq(self,modes,data,type)
+            nmodes = size(modes,2);
 
             % Suport variable
-            second_spec = zeros(1,modes); % Is the change for alphas 
+            second_spec = zeros(1,nmodes); % Is the change for alphas 
             Rbm = length(self.result.natfreq(self.result.natfreq<8));
             
             % Number of increases necessary for 1/S goes from 0 to 0.4
             nmr = 320; %320
             % Prealocating the frequencies and changes matrix
-            frequencies = ones(nmr,modes*5);
+            frequencies = ones(nmr,nmodes*5);
 
             % Reseting the diameter
             rhov = linspace (1000,12000,nmr);
@@ -900,13 +903,13 @@ classdef calculations
                 self = Coupling(self); % coupling all beam matrices
                 self = EigenSolve(self,BT); % solving for the frequencies
 
-                wv_n = self.result.eigenvalues; % wave number
+                wv_n = self.result.dispersion; % wave number
                 natF_Hz = self.result.natfreqHz;
                 % ---------------------------------------------------------
 
-                frequencies(j,1:modes) = wv_n(1+Rbm:modes+Rbm,1);
+                frequencies(j,1:nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,1);
 
-                frequencies(j,modes+1:2*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                frequencies(j,nmodes+1:2*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 % Calculating the frequencies for the next Beam theory ----
                 BT = 1+type;
@@ -921,7 +924,7 @@ classdef calculations
                 self = Coupling(self); % coupling all beam matrices
                 self = EigenSolve(self,BT); % solving for the frequencies
 
-                wv_n = self.result.eigenvalues; % wave number
+                wv_n = self.result.dispersion; % wave number
                 natF = self.result.natfreq;
                 natF_Hz = self.result.natfreqHz;
                 omega_crit = self.critical.omega;
@@ -934,38 +937,38 @@ classdef calculations
 
                 % Alpha relation for Rayleight and shear beam, and Beta for
                 % Timoshenko. Change made because Alpha of tbt change
-                frequencies(j,2*modes+1:3*modes) = wv_n(1+Rbm:modes+Rbm,1);
+                frequencies(j,2*nmodes+1:3*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 if type == 1
                     % Beta relation
-                    frequencies(j,3*modes+1:4*modes) = wv_n(1+Rbm:modes+Rbm,2);
+                    frequencies(j,3*nmodes+1:4*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,2);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 elseif type == 2
                     % Beta relation
-                    frequencies(j,3*modes+1:4*modes) = wv_n(1+Rbm:modes+Rbm,2);
+                    frequencies(j,3*nmodes+1:4*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,2);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 elseif type == 3
                     B = sqrt(rho*A/(E*I))*natF*self.L^2;
 
-                    for i = 1:modes
+                    for i = 1:nmodes
                         if B(i+Rbm) > ((self.S(1))^2/self.gama(1))
                             second_spec(i) = 1;
                         end
                         % Alpha relation
-                        frequencies(j,3*modes+i) = wv_n(i+Rbm,2+second_spec(i));
+                        frequencies(j,3*nmodes+i) = wv_n(i+Rbm,2+second_spec(i));
                     end
 
                     % Critical frequency
-                    frequencies(j,5*modes+1) = omega_crit(1);
+                    frequencies(j,5*nmodes+1) = omega_crit(1);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 end
 
@@ -976,19 +979,19 @@ classdef calculations
             hold on
             box on
             if type == 1
-                el2 = plot(rhov(:),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(rhov(:),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(rhov(:),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(rhov(:),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Rayleight','color','b','HandleVisibility', 'off');
             elseif type == 2
-                el2 = plot(rhov(:),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(rhov(:),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(rhov(:),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(rhov(:),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Shear','color','b','HandleVisibility', 'off');
             elseif type == 3 
-                el2 = plot(rhov(:),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(rhov(:),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(rhov(:),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(rhov(:),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Timoshenko','color','b','HandleVisibility', 'off');
             end
 
@@ -1007,13 +1010,15 @@ classdef calculations
     end
     %% E x natFreq #####                                                   
     function self = E_natFreq(self,modes,data,type)
+            nmodes = size(modes,2);
+
             % Suport variable
-            second_spec = zeros(1,modes); % Is the change for alphas 
+            second_spec = zeros(1,nmodes); % Is the change for alphas 
             Rbm = length(self.result.natfreq(self.result.natfreq<8));
             
             nmr = 320; % number of repetitions
             % Prealocating the frequencies and changes matrix
-            frequencies = ones(nmr,modes*5);
+            frequencies = ones(nmr,nmodes*5);
 
             % Reseting the diameter
             youngv = linspace (110e9,207e9,nmr);
@@ -1031,20 +1036,20 @@ classdef calculations
                 self = Coupling(self); % coupling all beam matrices
                 self = EigenSolve(self,BT); % solving for the frequencies
 
-                wv_n = self.result.eigenvalues; % wave number
+                wv_n = self.result.dispersion; % wave number
                 natF_Hz = self.result.natfreqHz;
                 % ---------------------------------------------------------
 
-                frequencies(j,1:modes) = wv_n(1+Rbm:modes+Rbm,1);
+                frequencies(j,1:nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 % Relation for frequency curves
                 if type == 1 || type == 3
 
-                    frequencies(j,modes+1:2*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                    frequencies(j,nmodes+1:2*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
                     
                 elseif type == 2
 
-                    frequencies(j,modes+1:2*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                    frequencies(j,nmodes+1:2*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 end
 
@@ -1061,7 +1066,7 @@ classdef calculations
                 self = Coupling(self); % coupling all beam matrices
                 self = EigenSolve(self,BT); % solving for the frequencies
 
-                wv_n = self.result.eigenvalues; % wave number
+                wv_n = self.result.dispersion; % wave number
                 natF = self.result.natfreq; %#########
                 natF_Hz = self.result.natfreqHz;
                 omega_crit = self.critical.omega;
@@ -1074,38 +1079,38 @@ classdef calculations
 
                 % Alpha relation for Rayleight and shear beam, and Beta for
                 % Timoshenko. Change made because Alpha of tbt change
-                frequencies(j,2*modes+1:3*modes) = wv_n(1+Rbm:modes+Rbm,1);
+                frequencies(j,2*nmodes+1:3*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 if type == 1
                     % Beta relation
-                    frequencies(j,3*modes+1:4*modes) = wv_n(1+Rbm:modes+Rbm,2);
+                    frequencies(j,3*nmodes+1:4*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,2);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 elseif type == 2
                     % Beta relation
-                    frequencies(j,3*modes+1:4*modes) = wv_n(1+Rbm:modes+Rbm,2);
+                    frequencies(j,3*nmodes+1:4*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,2);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 elseif type == 3
                     B = sqrt(rho*A/(E*I))*natF*self.L^2;
 
-                    for i = 1:modes
+                    for i = 1:nmodes
                         if B(i+Rbm) > ((self.S(1))^2/self.gama(1))
                             second_spec(i) = 1;
                         end
                         % Alpha relation
-                        frequencies(j,3*modes+i) = wv_n(i+Rbm,2+second_spec(i));
+                        frequencies(j,3*nmodes+i) = wv_n(i+Rbm,2+second_spec(i));
                     end
 
                     % Critical frequency
-                    frequencies(j,5*modes+1) = omega_crit(1);
+                    frequencies(j,5*nmodes+1) = omega_crit(1);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF_Hz(1+Rbm:modes+Rbm,1);
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF_Hz(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 end
             end
@@ -1115,19 +1120,19 @@ classdef calculations
             hold on
             box on
             if type == 1
-                el2 = plot(youngv(:),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(youngv(:),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(youngv(:),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(youngv(:),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Rayleight','color','b','HandleVisibility', 'off');
             elseif type == 2
-                el2 = plot(youngv(:),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(youngv(:),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(youngv(:),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(youngv(:),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Shear','color','b','HandleVisibility', 'off');
             elseif type == 3
-                el2 = plot(youngv(:),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(youngv(:),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(youngv(:),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(youngv(:),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Timoshenko','color','b','HandleVisibility', 'off');
             end
 
@@ -1146,14 +1151,16 @@ classdef calculations
     end
     %% Slenderness Ratio x natFreq BY SLEPTON (2023) #####                 
     function self = slendernessR_natFreq(self,modes,data,type)
+            nmodes = size(modes,2);
+
             % Suport variable
-            second_spec = zeros(1,modes); % Is the change for alphas 
+            second_spec = zeros(1,nmodes); % Is the change for alphas 
             Rbm = length(self.result.natfreq(self.result.natfreq<8));
             
             % Number of increases necessary for 1/S goes from 0 to 0.4
             nmr = 1600; %1600
             % Prealocating the frequencies and changes matrix
-            frequencies = ones(nmr,modes*5);
+            frequencies = ones(nmr,nmodes*5);
             change = ones(nmr,3);
 
             % Reseting the diameter
@@ -1179,7 +1186,7 @@ classdef calculations
                 self = Coupling(self); % coupling all beam matrices
                 self = EigenSolve(self,BT); % solving for the frequencies
 
-                wv_n = self.result.eigenvalues; % wave number
+                wv_n = self.result.dispersion; % wave number
                 natF = self.result.natfreq;
 
                 A = self.Beam(1).A(1);
@@ -1188,16 +1195,16 @@ classdef calculations
                 rho = self.Beam(1).rho(1);
                 % ---------------------------------------------------------
 
-                frequencies(j,1:modes) = wv_n(1+Rbm:modes+Rbm,1);
+                frequencies(j,1:nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,1);
                 % Relation for frequency curves
                 if type == 1 || type == 3
 
-                    frequencies(j,modes+1:2*modes) = natF(1+Rbm:modes+Rbm,1)*...
+                    frequencies(j,nmodes+1:2*nmodes) = natF(modes(1)+Rbm : modes(end)+Rbm,1)*...
                         (1/self.S(1))*sqrt(rho*A*self.L^4/(E*I));
                     
                 elseif type == 2
 
-                    frequencies(j,modes+1:2*modes) = natF(1+Rbm:modes+Rbm,1)*...
+                    frequencies(j,nmodes+1:2*nmodes) = natF(modes(1)+Rbm : modes(end)+Rbm,1)*...
                         self.gama(1)*(1/self.S(1))*sqrt(rho*A*self.L^4/(E*I));
 
                 end
@@ -1217,7 +1224,7 @@ classdef calculations
                 self = Coupling(self); % coupling all beam matrices
                 self = EigenSolve(self,BT); % solving for the frequencies
 
-                wv_n = self.result.eigenvalues; % wave number
+                wv_n = self.result.dispersion; % wave number
                 natF = self.result.natfreq;
                 % natF_Hz = self.result.natfreqHz;
                 omega_crit = self.critical.omega;
@@ -1231,40 +1238,40 @@ classdef calculations
 
                 % Alpha relation for Rayleight and shear beam, and Beta for
                 % Timoshenko. Change made because Alpha of tbt change
-                frequencies(j,2*modes+1:3*modes) = wv_n(1+Rbm:modes+Rbm,1);
+                frequencies(j,2*nmodes+1:3*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,1);
 
                 if type == 1
                     % Beta relation
-                    frequencies(j,3*modes+1:4*modes) = wv_n(1+Rbm:modes+Rbm,2);
+                    frequencies(j,3*nmodes+1:4*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,2);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF(1+Rbm:modes+Rbm,1)*...
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF(modes(1)+Rbm : modes(end)+Rbm,1)*...
                         (1/self.S(1))*sqrt(rho*A*self.L^4/(E*I));
 
                 elseif type == 2
                     % Beta relation
-                    frequencies(j,3*modes+1:4*modes) = wv_n(1+Rbm:modes+Rbm,2);
+                    frequencies(j,3*nmodes+1:4*nmodes) = wv_n(modes(1)+Rbm : modes(end)+Rbm,2);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF(1+Rbm:modes+Rbm,1)*...
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF(modes(1)+Rbm : modes(end)+Rbm,1)*...
                         self.gama(1)*(1/self.S(1))*sqrt(rho*A*self.L^4/(E*I));
 
                 elseif type == 3
                     B = sqrt(rho*A/(E*I))*natF*self.L^2;
 
-                    for i = 1:modes
+                    for i = 1:nmodes
                         if B(i+Rbm) > ((self.S(1))^2/self.gama(1))
                             second_spec(i) = 1;
                         end
                         % Alpha relation
-                        frequencies(j,3*modes+i) = wv_n(i+Rbm,2+second_spec(i));
+                        frequencies(j,3*nmodes+i) = wv_n(i+Rbm,2+second_spec(i));
                     end
 
                     % Critical frequency
-                    frequencies(j,5*modes+1) = omega_crit(1);
+                    frequencies(j,5*nmodes+1) = omega_crit(1);
 
                     % Relation for frequency curves
-                    frequencies(j,4*modes+1:5*modes) = natF(1+Rbm:modes+Rbm,1)*...
+                    frequencies(j,4*nmodes+1:5*nmodes) = natF(modes(1)+Rbm : modes(end)+Rbm,1)*...
                         (1/self.S(1))*sqrt(rho*A*self.L^4/(E*I));
                 end
 
@@ -1278,34 +1285,34 @@ classdef calculations
             figure
             hold on
             box on
-            el = plot(change(:,1),frequencies(:,1:modes),'-',...
+            el = plot(change(:,1),frequencies(:,1:nmodes),'-',...
                 'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
             if type == 1
-                al = plot(change(:,1),frequencies(:,2*modes+1:3*modes),'--',...
+                al = plot(change(:,1),frequencies(:,2*nmodes+1:3*nmodes),'--',...
                     'DisplayName','\alpha','color','#A2142F','HandleVisibility', 'off');
-                bl = plot(change(:,1),frequencies(:,3*modes+1:4*modes),'-.',...
+                bl = plot(change(:,1),frequencies(:,3*nmodes+1:4*nmodes),'-.',...
                     'DisplayName','\beta','color','b','HandleVisibility', 'off');
                 xlabel('1/S')
                 ylabel('Wave Number')
                 axis([0 0.3 0 16])
             elseif type == 2
-                al = plot(change(:,2),frequencies(:,2*modes+1:3*modes),'--',...
+                al = plot(change(:,2),frequencies(:,2*nmodes+1:3*nmodes),'--',...
                     'DisplayName','\alpha','color','#A2142F','HandleVisibility', 'off');
-                bl = plot(change(:,2),frequencies(:,3*modes+1:4*modes),'-.',...
+                bl = plot(change(:,2),frequencies(:,3*nmodes+1:4*nmodes),'-.',...
                     'DisplayName','\beta','color','b','HandleVisibility', 'off');
                 xlabel('\gamma/S')
                 ylabel('Wave Number')
                 axis([0 0.3 0 16])
             elseif type == 3
-                ex = plot(change(:,1),frequencies(:,5*modes+1),'-',...
+                ex = plot(change(:,1),frequencies(:,5*nmodes+1),'-',...
                     'DisplayName','\beta_{crit}','color','#109411','HandleVisibility', 'off');
-                bl = plot(change(:,1),frequencies(:,2*modes+1:3*modes),'--',...
+                bl = plot(change(:,1),frequencies(:,2*nmodes+1:3*nmodes),'--',...
                     'DisplayName','\beta','color','b','HandleVisibility', 'off');
-                for i = 1:modes-1 % For all timoshenko alpha
-                    plot(change(:,1),frequencies(:,3*modes+i),'-.',...
+                for i = 1:nmodes-1 % For all timoshenko alpha
+                    plot(change(:,1),frequencies(:,3*nmodes+i),'-.',...
                         'color','#A2142F','HandleVisibility', 'off'); % alpha
                 end
-                al = plot(change(:,1),frequencies(:,3*modes+modes),'-.',...
+                al = plot(change(:,1),frequencies(:,3*nmodes+nmodes),'-.',...
                     'DisplayName','\alpha','color','#A2142F','HandleVisibility', 'off');
                 xlabel('1/S')
                 ylabel('Wave Number')
@@ -1328,25 +1335,25 @@ classdef calculations
             hold on
             box on
             if type == 1
-                el2 = plot(change(:,1),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(change(:,1),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(change(:,1),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(change(:,1),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Rayleight','color','b','HandleVisibility', 'off');
                 xlabel('1/S')
                 ylabel('\omega*1/S*(\rho*A*L^4/E*I)^{1/2}')
                 axis([0 0.3 0 16])
             elseif type == 2
-                el2 = plot(change(:,2),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(change(:,2),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(change(:,2),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(change(:,2),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Shear','color','b','HandleVisibility', 'off');
                 xlabel('\gamma/S')
                 ylabel('\omega*\gamma/S*(\rho*A*L^4/E*I)^{1/2}')
                 axis([0 0.3 0 16])
             elseif type == 3
-                el2 = plot(change(:,1),frequencies(:,modes+1:2*modes),'-',...
+                el2 = plot(change(:,1),frequencies(:,nmodes+1:2*nmodes),'-',...
                     'DisplayName','Euler','color','#EDB120','HandleVisibility', 'off');
-                sl =  plot(change(:,1),frequencies(:,4*modes+1:5*modes),'--',...
+                sl =  plot(change(:,1),frequencies(:,4*nmodes+1:5*nmodes),'--',...
                     'DisplayName','Timoshenko','color','b','HandleVisibility', 'off');
                 xlabel('1/S')
                 ylabel('\omega*1/S*(\rho*A*L^4/E*I)^{1/2}')
@@ -1367,9 +1374,7 @@ classdef calculations
         model = modelTypes{BT};  
     
         freqs = self.result.natfreq(1:nmr);
-    
         maxfreq = freqs(end) + (freqs(end) - freqs(end-1));
-
 
         dfreq = diff(freqs); countgaps = 1;
         gap_indices = []; bandgap_starts = []; bandgap_ends = [];
@@ -1396,85 +1401,94 @@ classdef calculations
         % Plot das frequências naturais
         scatter(1:nmr, freqs, 25, 'filled', 'blue')
     
-        % Destacando múltiplos bandgaps
-        for i = 1:length(bandgap_starts)
-            fill([0, nmr, nmr, 0], [bandgap_starts(i), bandgap_starts(i), bandgap_ends(i), bandgap_ends(i)], ...
-                 'blue', 'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            str = {sprintf('%f',gapvalue(i))};
-            text(2,bandgap_ends(i),str);
+        if isempty(gap_indices) == 0
+            % Destacando múltiplos bandgaps
+            for i = 1:length(bandgap_starts)
+                fill([0, nmr, nmr, 0], [bandgap_starts(i), bandgap_starts(i), bandgap_ends(i), bandgap_ends(i)], ...
+                     'blue', 'FaceAlpha', 0.1, 'EdgeColor', 'none');
+                str = {sprintf('%f',gapvalue(i))};
+                text(2,bandgap_ends(i),str);
+            end
+            legend("Frequencies", "Bandgaps", "Location","northwest")
+        else
+            legend("Frequencies", "Location","northwest")
         end
-    
-        legend("Frequencies", "Bandgaps", "Location","northwest")
         hold off
+
     end
 
-        %% E x natFreq #####                                                   
-        function self = Prismatic_Saturation(self,modes,data)
-            
-            % Reseting the saturation parameter
-            alpha = [1/8,2/8,3/8,4/8,5/8,6/8,7/8];
-            nmr = size(alpha,2); 
-
-            % Prealocating the frequencies and changes matrix
-            frequencies = ones(nmr,size(modes,2));
-
-            for j = 1:nmr
-                BT = 1;
-                
-                % ---------------------------------------------------------
-                for inp = 1:size(data,2)
-                    LS2 = (1-alpha(j))/2;
-                    LS1 = alpha(j);
-                    % LS2 = (alpha(j)/2);
-                    % LS1 = 1 - 2*LS2;
-
-                    self.data(inp).segments = [
-                        % [rho, E, nu,        d1, d2, form,       section_length, n_elements]
-
-                        % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3; % simpa stepped
-                        % 7850, 205e9, 0.3,   0.01, 0.0375, 2,    LS1/10, 5;
-                        % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;
-
-                        2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3 %1 simpa bimat
-                        7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS1/10, 5;
-                        2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;
-                        ];
-                    self = FEM_setup(self,inp);
-                    self = parameters(self,BT,inp);
-                end
+    %% natFreq x Periodic stepped saturation parameter                     
+    function self = Periodic_Saturation(self,modes,data)
+        nmodes = size(modes,2);
         
-                self = Eigenproblem(self); % setting the matrices
-                self = Coupling(self); % coupling all beam matrices
-                self = EigenSolve(self,BT); % solving for the frequencies
+        %{
+            Domagalski, Ł. Comparison of the Natural Vibration Frequencies
+            of Timoshenko and Bernoulli Periodic Beams. 
+            Materials 2021, 14, 7628. https://doi.org/10.3390/ma14247628
+        %}
+        
+        % Reseting the saturation parameter
+        alpha = [1/8,2/8,3/8,4/8,5/8,6/8,7/8];
+        nmr = size(alpha,2); 
 
-                wv_n = self.result.natfreq; % wave number
-                % ---------------------------------------------------------
+        % Prealocating the frequencies and changes matrix
+        frequencies = ones(nmr,nmodes);
 
-                frequencies(j,1:size(modes,2)) = [wv_n(modes',1)]';
+        for j = 1:nmr
+            BT = 1;
+            
+            % ---------------------------------------------------------
+            for inp = 1:size(data,2)
+                LS2 = (1-alpha(j))/2;
+                LS1 = alpha(j);
+
+                self.data(inp).segments = [
+                    % [rho, E, nu,        d1, d2, form,       section_length, n_elements]
+
+                    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3; % simpa stepped
+                    % 7850, 205e9, 0.3,   0.01, 0.0375, 2,    LS1/10, 5;
+                    % 7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;
+
+                    2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 3 %1 simpa bimat
+                    7850, 205e9, 0.3,   0.01, 0.0250, 2,    LS1/10, 5;
+                    2700,  69e9, 0.3,   0.01, 0.0250, 2,    LS2/10, 2;
+                    ];
+                self = FEM_setup(self,inp);
+                self = parameters(self,BT,inp);
             end
+    
+            self = Eigenproblem(self); % setting the matrices
+            self = Coupling(self); % coupling all beam matrices
+            self = EigenSolve(self,BT); % solving for the frequencies
 
-            % Ploting the frequencies -------------------------------------
-            figure
-            hold on
-            box on
+            wv_n = self.result.natfreq; % wave number
+            % ---------------------------------------------------------
 
-            el2 = plot(alpha, frequencies, '-s', 'LineWidth', 1); % Plota as linhas normalmente
-            
-            % Gera as legendas em ordem inversa
-            legends = arrayfun(@(k) sprintf('Mode %d', modes(k)), length(modes):-1:1, 'UniformOutput', false);
-            
-            % Aplica a legenda invertida
-            legend(flip(el2), legends,'Location','northwest');
+            frequencies(j,1:nmodes) = [wv_n(modes',1)]';
+        end
 
-            xlabel('\alpha')
-            ylabel('\omega_n')
-            xticks(alpha)
-            axis('tight')
-            title('Natural Frequency x Saturation parameter (\alpha)')
-            % legend('show','Location','north')
+        % Ploting the frequencies -------------------------------------
+        figure
+        hold on
+        box on
 
-            hold off
-            % -------------------------------------------------------------
+        el2 = plot(alpha, frequencies, '-s', 'LineWidth', 1); % Plota as linhas normalmente
+        
+        % Gera as legendas em ordem inversa
+        legends = arrayfun(@(k) sprintf('Mode %d', modes(k)), length(modes):-1:1, 'UniformOutput', false);
+        
+        % Aplica a legenda invertida
+        legend(flip(el2), legends,'Location','northwest');
+
+        xlabel('\alpha')
+        ylabel('\omega_n')
+        xticks(alpha)
+        axis('tight')
+        title('Natural Frequency x Saturation parameter (\alpha)')
+        % legend('show','Location','north')
+
+        hold off
+        % -------------------------------------------------------------
     end
                                                                         end
     % ============================= STATIC ============================== %
@@ -1528,7 +1542,7 @@ classdef calculations
         w=(b-a)./((1-y.^2).*Lp.^2)*(N2/N1)^2;
 
     end % end Legendre-Gauss Quadrature
-    %% MATERIAL #                                                          
+    %% MATERIAL                                                            
     function self = material(self,input)
 
         % reorganizing values for each element ____________________________
@@ -1560,37 +1574,30 @@ classdef calculations
         % self.Beam(input).G(:,1) = ones(1,size(self.Beam(input).E,1))*77.5e9;
         % _________________________________________________________________
     end
-    %% GEOMETRY #                                                          
+    %% GEOMETRY                                                            
     function self = geometry(self,input)
-        % reorganizing values for each element ____________________________
-        fields = {'d1', 'd2','d3','nu'};% d3 is the form
+
+        n_el = self.mesh(input).n_el;
+        fields = {'d1', 'd2', 'd3', 'nu'}; % d3 is the form
+        new_values = zeros(n_el, numel(fields)); % Pré-aloca matriz para todos os campos
         
-        for f = 1:numel(fields)
-           if startsWith(fields{f}, 'd')
-                % get if its d1 d2 or d3
-                col_idx = str2double(fields{f}(2)); 
-                % values for each node set
-                masu = vertcat(self.data(input).d{:});
-                % nodes where its is applied
-                [values, intervals] = deal(masu(:, col_idx), masu(:, end-1:end));
-           else
-                masu = vertcat(self.data(input).(fields{f}){:});
-                [values, intervals] = deal(masu(:, 1), masu(:, end-1:end));
-            end
-
-            % calculate the size of the vector
-            new_values = zeros(self.mesh(input).n_el, 1); % pre-allocate new_values
-
-            % fill new_values with the values to its respective nodes
-            for i = 1:size(intervals,1)
-                new_values(intervals(i,1) : intervals(i,2)) = new_values(intervals(i,1) : intervals(i,2)) + values(i);
-            end
-
-            % store the vector on its due field
-            self.Beam(input).(fields{f}) = new_values;
+        masu_d = vertcat(self.data(input).d{:}); % Agrupa todos os d1, d2, d3
+        masu_nu = vertcat(self.data(input).nu{:}); % Agrupa nu
+        intervals = masu_d(:, end-1:end); % Assume que os intervalos são os mesmos para d e nu
+        
+        % Preenche os valores corretamente entre os nós iniciais e finais
+        for i = 1:size(intervals, 1)
+            idx_range = intervals(i,1):intervals(i,2); % Índices do intervalo
+            new_values(idx_range, 1:3) = new_values(idx_range, 1:3) + masu_d(i, 1:3); % d1, d2, d3
+            new_values(idx_range, 4) = new_values(idx_range, 4) + masu_nu(i, 1); % nu
         end
-        clear idx fields f new_values intervals values i col_idx;
-        % _________________________________________________________________
+        
+        % Armazena os resultados
+        for f = 1:numel(fields)
+            self.Beam(input).(fields{f}) = new_values(:, f);
+        end
+        
+        clear fields f new_values intervals masu_d masu_nu idx_range;
 
         % -----------------------------------------------------------------
         for el = 1:self.mesh(input).n_el
@@ -1648,19 +1655,6 @@ classdef calculations
         x_ax = self.coupled_mesh.coordinates;
  
         if any([self.data.geo] == 2)
-            % cellData = cell(size(self.data, 2), 1);
-            % for k = 1:size(self.data, 2)
-            %     cellData{k} = self.layer(k).dl1(:, 1); % Extrai a primeira coluna
-            % end
-            % d1 = vertcat(cellData{:});
-            % d1 = [d1./2; d1(end)./2]; d2 = d1;
-            % 
-            % cellData = cell(size(self.data, 2), 1);
-            % for k = 1:size(self.data, 2)
-            %     cellData{k} = self.layer(k).dl2(:, 1); % Extrai a primeira coluna
-            % end
-            % dl1 = vertcat(cellData{:});
-            % dl1 = [dl1./2; dl1(end)./2];
             d1 = [vertcat(self.Beam(:).d1)./2; self.Beam(end).d1(end)./2];
             d2 = d1;
         else
@@ -1762,129 +1756,49 @@ classdef calculations
     %% MULTILAYER #####                                                    
     function self = multilayer(self,inp)
 
-        % layer = [radius, rho, E, nu, inital node, end node]  
-        fields = {'r','rho','E','nu'};
-        for f = 1:numel(fields)
-                prop_name = fields{f};
-                masu =  vertcat(self.data(inp).layer{:}(f));
-            self.layer(inp).data.(prop_name) = masu(:,1);
+        % Inicializa os layers periódicos
+        layers = self.data(inp).layer;
+        n_layers = 1;
+        n_celulas = self.data(inp).n_c;
+        n_nodes = max(max(layers(:,5:6)));
+        
+        self.data(inp).layer_nodes = [];
+        props = {'r', 'rho', 'E', 'nu'};
+        for f = 1:4
+            self.data(inp).(['layer_' props{f}]) = [];
         end
-    
-        init = length(fieldnames(self.layer(inp).data));
-        self.layer(inp).data.no_i = 0;
-        self.layer(inp).data.no_f = 0;
-        fields = {'no_i','no_f'};
-        for f = 1:numel(fields)
-            prop_name = fields{f};
-            masu =  vertcat(self.data(inp).layer{:}(f+init));
-            self.layer(inp).data.(prop_name) = masu(:,1);
-        end
-
-        %     masu =  vertcat(self.data(inp).(fields){:});
-        % self.layer(inp).data.r = masu(:,1);
-        % self.layer(inp).data.rho = self.data(inp).layer{:}(:,2);
-        % self.layer(inp).data.E = self.data(inp).layer{:}(:,3);
-        % self.layer(inp).data.nu = self.data(inp).layer{:}(:,4);
-        % self.layer(inp).data.no_i = self.data(inp).layer{:}(:,5);
-        % self.layer(inp).data.no_f = self.data(inp).layer{:}(:,6);
-% 
-        % % reorganizing values for each element ____________________________
-        % fields = {'r','rho','E','nu'};
-        % 
-        % for f = 1:numel(fields)
-        %     % pre-allocate new_values
-        %     new_values = zeros(self.data(inp).n_el, size(self.data(inp).layer,1));
-        % 
-        %     for j = 1:size(self.data(inp).layer,1)
-        % 
-        %         % Extrai valores e nós para os outros campos
-        %         prop_name = fields{f};
-        %         values = self.layer(inp).data.(prop_name)(j);
-        % 
-        %         % setting the values node intervals
-        %         intervals = [self.layer(inp).data.no_f(j); self.layer(inp).data.no_i(j)];
-        % 
-        %         % fill new_values with the values to its respective nodes
-        %         for i = 1:numel(values) %
-        %             new_values(intervals(i+1):intervals(i),j) = values(i);
-        %         end
-        % 
-        %         % store the vector on its due field
-        %         self.layer(inp).(fields{f}) = new_values;
-        %     end
-        % end
-        % clear idx fields f new_values intervals counts values total_size i col_idx;
-        % % _________________________________________________________________
-
-        % reorganizing values for each element ____________________________
-        fields = {'r','rho','E','nu'};
-
-        for f = 1:numel(fields)
-            % pre-allocate new_values
-            new_values = zeros(self.data(inp).n_el, size(self.data(inp).layer,1));
-
-            % for each 
-            for j = 1:size(self.data(inp).layer,1)
-
-                % Extrai valores e nós para os outros campos
-                prop_name = fields{f};
-                values = self.layer(inp).data.(prop_name)(j);
-
-                % setting the values node intervals
-                intervals = [self.layer(inp).data.no_f(j); self.layer(inp).data.no_i(j)];
-
-                % fill new_values with the values to its respective nodes
-                for i = 1:numel(values)
-                    new_values(intervals(i+1):intervals(i),j) = values(i);
-                end
-
-                % store the vector on its due field
-                self.layer(inp).(fields{f}) = new_values;
+        
+        % Preenche os dados das camadas periódicas
+        for i = 0:n_celulas-1
+            offset = i * n_nodes;
+            self.data(inp).layer_nodes = [self.data(inp).layer_nodes; layers(:,5:6) + offset];
+            for f = 1:4
+                self.data(inp).(['layer_' props{f}]) = [self.data(inp).(['layer_' props{f}]); layers(:, f)];
             end
         end
-        clear idx fields f new_values intervals counts values total_size i col_idx;
-        % _________________________________________________________________
-        %         % reorganizing values for each element ____________________________
-        % fields = {'d1', 'd2','d3','nu'};% d3 is the form
-        % 
-        % for f = 1:numel(fields)
-        %    if startsWith(fields{f}, 'd')
-        %         % get if its d1 d2 or d3
-        %         col_idx = str2double(fields{f}(2)); 
-        %         % values for each node set
-        %         masu = vertcat(self.data(input).d{:});
-        %         % nodes where its is applied
-        %         [values, intervals] = deal(masu(:, col_idx), masu(:, end-1:end));
-        %    else
-        %         masu = vertcat(self.data(input).(fields{f}){:});
-        %         [values, intervals] = deal(masu(:, 1), masu(:, end-1:end));
-        %     end
-        % 
-        %     % calculate the size of the vector
-        %     new_values = zeros(self.mesh(input).n_el, 1); % pre-allocate new_values
-        % 
-        %     % fill new_values with the values to its respective nodes
-        %     for i = 1:size(intervals,1)
-        %         new_values(intervals(i,1) : intervals(i,2)) = values(i);
-        %     end
-        % 
-        %     % store the vector on its due field
-        %     self.Beam(input).(fields{f}) = new_values;
-        % end
-        % clear idx fields f new_values intervals values i col_idx;
-        % % _________________________________________________________________
+        
+        for f = 1:4
+            self.layer(inp).(props{f}) = zeros(max(max(self.data(inp).layer_nodes)),1);
+            for i = 1:size(self.data(inp).layer_r,1)
+                ni = self.data(inp).layer_nodes(i, 1);
+                nf = self.data(inp).layer_nodes(i, 2);
+                self.layer(inp).(props{f})(ni:nf,1) = self.data(inp).(['layer_' props{f}])(i,1);
+            end
+        end
 
-        % rewritting ___________________________________________________
+        clear f new_values j ni nf;
+
+        % rewritting ______________________________________________________
         form = self.Beam(inp).d3;
         db1 = self.Beam(inp).d1;
         db2 = self.Beam(inp).d2;
         r = self.layer(inp).r;
         % pre allocating 
-        self.layer(inp).dl1 = zeros(self.data(inp).n_el, size(r, 2));
-        self.layer(inp).dl2 = zeros(self.data(inp).n_el, size(r, 2));
+        self.layer(inp).dl1 = zeros(self.mesh(inp).n_el, size(r, 2));
+        self.layer(inp).dl2 = zeros(self.mesh(inp).n_el, size(r, 2));
         % each layers dimensions
         for j = 1:size(r, 2)
-            for i = 1:self.data(inp).n_el
+            for i = 1:self.mesh(inp).n_el
                 % Selecionar valor inicial ou acumulado de dl1
                 if j == 1
                     self.layer(inp).dl1(i, j) = (form(i) == 1 || form(i) == 2) * db1(i) + ...
@@ -1902,29 +1816,32 @@ classdef calculations
         % _________________________________________________________________
         
         % _________________________________________________________________
-        for el = 1:self.mesh(inp).n_el
+        for layer = 1:n_layers
+        % layer = 1;
+            for el = 1:self.mesh(inp).n_el
 
-            % rewritting the parameters for convenience
-            d2 = self.layer(inp).dl1(el);
-            d1 = self.layer(inp).dl2(el);
-            nu = self.Beam(inp).nu(el);
+                % rewritting the parameters for convenience
+                d2 = self.layer(inp).dl1(el,layer); % external
+                d1 = self.layer(inp).dl2(el,layer); % internal
+                nu = self.layer(inp).nu(el,layer);
 
-            if form(el) == 1 || form(el) == 3 % pipe 
-                A = pi*((d1/2)^2 - (d2/2)^2);
-                I = (pi/64)*((d1)^4 - (d2)^4);
-                k = (2 *(1+nu))/(4 + 3*nu);
+                % ---------------------------------------------------------
+                if form(el) == 1 || form(el) == 3 % pipe
+                    A = pi*((d1/2)^2 - (d2/2)^2);
+                    I = (pi/64)*((d1)^4 - (d2)^4);
+                    k = (2 *(1+nu))/(4 + 3*nu);
 
-            elseif form(el) == 2 || form(el) == 4 % box
-                A = d1^2 - d2^2;
-                I = ((d1^4)/12) - ((d2^4)/12);
-                k = (20*(1 + nu))/(48 + 39*nu);
+                elseif form(el) == 2 || form(el) == 4 % box
+                    A = d1^2 - d2^2;
+                    I = ((d1^4)/12) - ((d2^4)/12);
+                    k = (20*(1 + nu))/(48 + 39*nu);
 
+                end
+                % ---------------------------------------------------------
+                                           self.layer(inp).A(el,layer) = A;
+                                           self.layer(inp).I(el,layer) = I;
+                                           self.layer(inp).k(el,layer) = k;
             end
-            % ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨
-            % -------------------------------------------------------------
-                                            self.layer(inp).A(el,1) = A;
-                                            self.layer(inp).I(el,1) = I;
-                                            self.layer(inp).k(el,1) = k;
         end
         % _________________________________________________________________
 
